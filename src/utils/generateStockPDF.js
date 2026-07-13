@@ -1,0 +1,157 @@
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+// ── Warna (r,g,b) ───────────────────────────────────────────────
+const DARK_BLUE  = [31,  56,  100];
+const TEXT_GRAY  = [100, 116,  139];
+const TEXT_DARK  = [ 30,  41,   59];
+const TEXT_BLUE  = [ 37,  99, 235];
+const TEXT_GREEN = [ 22, 163,  74];
+const TEXT_RED   = [220,  38,  38];
+
+function formatNumber(num) {
+  return new Intl.NumberFormat('id-ID').format(Math.round(num || 0));
+}
+
+export function generateStockPDF(productName, data) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  let y = 20;
+
+  // 1. Header
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_GRAY);
+  doc.text('Report Produk', margin, y);
+  y += 6;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text(productName, margin, y);
+  y += 12;
+
+  // 2. Summary Stats
+  const totalOrder = data.reduce((acc, curr) => acc + curr.order, 0);
+  const totalTransit = data.reduce((acc, curr) => acc + curr.transit, 0);
+  const totalDatang = data.reduce((acc, curr) => acc + curr.datang, 0);
+  const totalSisa = data.reduce((acc, curr) => acc + curr.sisa, 0);
+  const totalPO = data.length;
+
+  const statW = (pageW - margin * 2) / 4;
+  
+  // Kotak 1: Total order
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_GRAY);
+  doc.text('Total order', margin, y);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text(formatNumber(totalOrder), margin, y + 6);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...TEXT_GRAY);
+  doc.text(`dari ${totalPO} PO`, margin, y + 10);
+
+  // Kotak 2: Total transit
+  doc.setFontSize(9);
+  doc.text('Total transit', margin + statW, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...TEXT_BLUE);
+  doc.text(formatNumber(totalTransit), margin + statW, y + 6);
+
+  // Kotak 3: Total datang
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_GRAY);
+  doc.text('Total datang', margin + statW * 2, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...TEXT_GREEN);
+  doc.text(formatNumber(totalDatang), margin + statW * 2, y + 6);
+
+  // Kotak 4: Total sisa
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_GRAY);
+  doc.text('Total sisa', margin + statW * 3, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...TEXT_RED);
+  doc.text(formatNumber(totalSisa), margin + statW * 3, y + 6);
+
+  y += 20;
+
+  // 3. History Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text('Riwayat per PO', margin, y);
+  y += 6;
+
+  // 4. Table for PO History
+  const tableRows = [];
+  data.forEach((po, index) => {
+    // Add PO Header row
+    tableRows.push([
+      { content: `${index + 1}`, styles: { fontStyle: 'bold', halign: 'center' } },
+      { content: `PO ${po.noPo} - ${po.vendor} (Status: ${po.status})`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
+    ]);
+
+    // Add PO summary row
+    tableRows.push([
+      '', 
+      { content: 'Total PO:', styles: { fontStyle: 'italic', textColor: [100, 116, 139] } }, 
+      { content: `Order: ${formatNumber(po.order)}`, styles: { fontStyle: 'bold' } }, 
+      { content: `Datang: ${formatNumber(po.datang)}`, styles: { fontStyle: 'bold', textColor: [22, 163, 74] } }, 
+      { content: `Sisa: ${formatNumber(po.sisa)}`, styles: { fontStyle: 'bold', textColor: [220, 38, 38] } }
+    ]);
+
+    // Add History details
+    if (po.history && po.history.length > 0) {
+      po.history.forEach(hist => {
+        tableRows.push([
+          '',
+          hist.tanggal,
+          formatNumber(hist.transit),
+          formatNumber(hist.datang),
+          hist.keterangan || '-'
+        ]);
+      });
+    } else {
+      tableRows.push(['', '-', '-', '-', 'Belum ada riwayat']);
+    }
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [['No', 'Tanggal', 'Transit', 'Datang', 'Keterangan']],
+    body: tableRows,
+    theme: 'grid',
+    headStyles: {
+      fillColor: DARK_BLUE,
+      textColor: 255,
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 40 },
+      2: { cellWidth: 30, halign: 'right' },
+      3: { cellWidth: 30, halign: 'right' },
+      4: { cellWidth: 'auto' }
+    },
+    styles: {
+      fontSize: 9,
+      cellPadding: 3
+    }
+  });
+
+  // Save PDF
+  doc.save(`Report_Produk_${productName.replace(/\s+/g, '_')}.pdf`);
+}
