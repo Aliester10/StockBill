@@ -16,6 +16,8 @@ export const generateStockExcel = async (data) => {
     { header: 'Qty Datang', key: 'datang', width: 15 },
     { header: 'Sisa', key: 'sisa', width: 15 },
     { header: 'Status', key: 'status', width: 20 },
+    { header: 'No GR', key: 'noGr', width: 15 },
+    { header: 'PIC', key: 'pic', width: 20 },
     { header: 'Keterangan', key: 'keterangan', width: 30 },
   ];
 
@@ -66,6 +68,8 @@ export const generateStockExcel = async (data) => {
       datang: item.datang,
       sisa: item.sisa,
       status: statusStr,
+      noGr: item.noGr || '-',
+      pic: item.pic || '-',
       keterangan: item.keterangan
     });
 

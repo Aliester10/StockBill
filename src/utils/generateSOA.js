@@ -118,7 +118,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   c4F.alignment = { horizontal: 'right', vertical: 'middle' };
 
   // Nilai status di kolom G
-  const statusText = statusFilter === 'OPEN' ? 'Open' : statusFilter === 'LUNAS' ? 'Lunas' : 'Open/Close';
+  const statusText = statusFilter === 'OPEN' ? 'Open' : statusFilter === 'CLOSE' ? 'Close' : 'Open/Close';
   const c4G = ws.getCell('G4');
   c4G.value     = statusText;
   c4G.font      = { name: 'Calibri' };
@@ -148,9 +148,9 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     { col: 'B', label: 'No',           align: AC },
     { col: 'C', label: 'No Invoice',   align: AC },
     { col: 'D', label: 'Tgl Invoice',  align: AC },
-    { col: 'E', label: 'Jatuh Tempo',  align: AC },
+    { col: 'E', label: 'Tgl Jatuh Tempo',  align: AC },
     { col: 'F', label: 'Nominal (Rp)', align: AC },
-    { col: 'G', label: 'Umur (hari)',  align: AC },
+    { col: 'G', label: 'Jatuh Tempo',  align: AC },
   ];
   tblHeaders.forEach(({ col, label, align }) => {
     const cell    = ws.getCell(`${col}7`);
@@ -212,7 +212,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   // BARIS TOTAL TAGIHAN (simetris B:G penuh seperti tabel)
   // ═══════════════════════════════════════════════════════════════
   ws.getRow(TOTAL_ROW).height = 30;
-  const labelTotal = statusFilter === 'LUNAS' ? 'TOTAL TAGIHAN LUNAS' : 'TOTAL TAGIHAN BELUM LUNAS';
+  const labelTotal = statusFilter === 'CLOSE' ? 'TOTAL TAGIHAN CLOSE' : 'TOTAL TAGIHAN BELUM CLOSE';
 
   ws.mergeCells(`B${TOTAL_ROW}:E${TOTAL_ROW}`);
   const cellTotLabel = ws.getCell(`B${TOTAL_ROW}`);

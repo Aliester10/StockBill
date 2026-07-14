@@ -14,8 +14,10 @@ const initialMockData = [
     sisa: 0,
     status: "GR",
     keterangan: "sudah tiba manado",
+    noGr: "50001234",
+    pic: "Andi",
     history: [
-      { tanggal: "12/06/2026", transit: 200, datang: 200, keterangan: "sudah tiba manado" }
+      { noGr: "GR-001", tanggal: "12/06/2026", transit: 200, datang: 200, pic: "Andi", keterangan: "sudah tiba manado" }
     ]
   },
   {
@@ -29,9 +31,11 @@ const initialMockData = [
     sisa: 350,
     status: "Partial",
     keterangan: "datang bertahap",
+    noGr: "50001235",
+    pic: "Budi",
     history: [
-      { tanggal: "20/06/2026", transit: 300, datang: 0, keterangan: "masih transit MKR" },
-      { tanggal: "28/06/2026", transit: 0, datang: 150, keterangan: "datang sebagian" }
+      { noGr: "GR-008", tanggal: "20/06/2026", transit: 300, datang: 0, pic: "Budi", keterangan: "masih transit MKR" },
+      { noGr: "GR-009", tanggal: "28/06/2026", transit: 0, datang: 150, pic: "Andi", keterangan: "datang sebagian" }
     ]
   },
   {
@@ -45,8 +49,10 @@ const initialMockData = [
     sisa: 2440,
     status: "Partial",
     keterangan: "di pinjam Palu",
+    noGr: "",
+    pic: "",
     history: [
-      { tanggal: "15/06/2026", transit: 940, datang: 560, keterangan: "di pinjam Palu" }
+      { noGr: "-", tanggal: "15/06/2026", transit: 940, datang: 560, pic: "-", keterangan: "di pinjam Palu" }
     ]
   }
 ];
@@ -61,12 +67,16 @@ export default function StockPage() {
   // Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formData, setFormData] = useState({
+    tanggal: new Date().toISOString().split('T')[0],
     namaBarang: '',
     vendor: '',
     noPo: '',
     order: '',
     transit: '',
     datang: '',
+    status: 'Belum datang',
+    noGr: '',
+    pic: '',
     keterangan: ''
   });
 
@@ -77,9 +87,8 @@ export default function StockPage() {
     const datang = Number(formData.datang) || 0;
     const sisa = order - datang;
     
-    let status = "Partial";
-    if (datang === 0) status = "Belum datang";
-    if (sisa <= 0) status = "GR";
+    // User can select status manually now, but we'll use formData.status
+    let status = formData.status || "Belum datang";
 
     const newItem = {
       id: Date.now(),
@@ -91,12 +100,16 @@ export default function StockPage() {
       datang,
       sisa,
       status,
+      noGr: formData.noGr,
+      pic: formData.pic,
       keterangan: formData.keterangan,
       history: [
         {
-          tanggal: new Date().toLocaleDateString('id-ID'),
+          noGr: formData.noGr || "-",
+          tanggal: formData.tanggal.split('-').reverse().join('/'),
           transit,
           datang,
+          pic: formData.pic || "-",
           keterangan: formData.keterangan
         }
       ]
@@ -104,7 +117,7 @@ export default function StockPage() {
 
     setDataList([...dataList, newItem]);
     setIsAddModalOpen(false);
-    setFormData({ namaBarang: '', vendor: '', noPo: '', order: '', transit: '', datang: '', keterangan: '' });
+    setFormData({ tanggal: new Date().toISOString().split('T')[0], namaBarang: '', vendor: '', noPo: '', order: '', transit: '', datang: '', status: 'Belum datang', noGr: '', pic: '', keterangan: '' });
   };
 
   // Derive vendors
@@ -220,6 +233,8 @@ export default function StockPage() {
               <th>Datang</th>
               <th>Sisa</th>
               <th>Status</th>
+              <th>No GR</th>
+              <th>PIC</th>
               <th>Keterangan</th>
             </tr>
           </thead>
@@ -245,6 +260,8 @@ export default function StockPage() {
                     {row.status}
                   </span>
                 </td>
+                <td className="text-muted">{row.noGr || '-'}</td>
+                <td className="text-muted">{row.pic || '-'}</td>
                 <td className="text-muted text-sm">{row.keterangan}</td>
               </tr>
             ))}
@@ -269,9 +286,15 @@ export default function StockPage() {
           <div className="modal-content">
             <h2 style={{marginTop: 0, marginBottom: '1.5rem'}}>Tambah Data Stok</h2>
             <form onSubmit={handleAddSubmit} className="add-stock-form">
-              <div className="form-group">
-                <label>Nama Barang</label>
-                <input required type="text" value={formData.namaBarang} onChange={e => setFormData({...formData, namaBarang: e.target.value})} placeholder="Contoh: Kertas Label Thermal" />
+              <div className="form-row">
+                <div className="form-group" style={{flex: 1}}>
+                  <label>Tanggal</label>
+                  <input required type="date" value={formData.tanggal} onChange={e => setFormData({...formData, tanggal: e.target.value})} />
+                </div>
+                <div className="form-group" style={{flex: 2}}>
+                  <label>Nama Barang</label>
+                  <input required type="text" value={formData.namaBarang} onChange={e => setFormData({...formData, namaBarang: e.target.value})} placeholder="Contoh: Kertas Label Thermal" />
+                </div>
               </div>
               <div className="form-row">
                 <div className="form-group">
@@ -295,6 +318,32 @@ export default function StockPage() {
                 <div className="form-group">
                   <label>Datang (Qty)</label>
                   <input type="number" value={formData.datang} onChange={e => setFormData({...formData, datang: e.target.value})} placeholder="0" />
+                </div>
+                <div className="form-group">
+                  <label>Sisa (Otomatis)</label>
+                  <input type="number" disabled value={(Number(formData.order) || 0) - (Number(formData.datang) || 0)} style={{background: '#F1F5F9', color: '#64748B'}} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Status</label>
+                <select 
+                  value={formData.status}
+                  onChange={e => setFormData({...formData, status: e.target.value})}
+                  className="status-select"
+                >
+                  <option value="Belum datang">Belum datang</option>
+                  <option value="Partial">Partial</option>
+                  <option value="GR">GR</option>
+                </select>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>No GR</label>
+                  <input type="text" value={formData.noGr} onChange={e => setFormData({...formData, noGr: e.target.value})} placeholder="Contoh: 50001234" />
+                </div>
+                <div className="form-group">
+                  <label>PIC</label>
+                  <input type="text" value={formData.pic} onChange={e => setFormData({...formData, pic: e.target.value})} placeholder="Nama PIC" />
                 </div>
               </div>
               <div className="form-group">
@@ -349,21 +398,24 @@ const DetailView = ({ productName, data, onBack }) => {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-label">Total order</div>
+          <div className="stat-label">Total Order</div>
           <div className="stat-value">{formatNumber(totalOrder)}</div>
           <div className="stat-desc">dari {totalPO} PO</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Total transit</div>
+          <div className="stat-label">Total Transit</div>
           <div className="stat-value text-blue">{formatNumber(totalTransit)}</div>
+          <div className="stat-desc text-muted">di MKR</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Total datang</div>
+          <div className="stat-label">Total Datang</div>
           <div className="stat-value text-green">{formatNumber(totalDatang)}</div>
+          <div className="stat-desc text-muted">sudah sampai</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Total sisa</div>
+          <div className="stat-label">Total Sisa</div>
           <div className="stat-value text-red">{formatNumber(totalSisa)}</div>
+          <div className="stat-desc text-muted">belum datang</div>
         </div>
       </div>
 
@@ -388,51 +440,44 @@ const PoHistoryCard = ({ po, formatNumber }) => {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex-align-center gap-2">
-          <h4 className="po-card-title">PO {po.noPo} · {po.vendor}</h4>
-          <span className={`status-badge status-${po.status.toLowerCase()}`}>
-            {po.status}
+          <h4 className="po-card-title">PO {po.noPo} <span style={{fontWeight: 400, margin: '0 4px'}}>|</span> {po.vendor}</h4>
+        </div>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <span className={`status-badge status-${po.status.toLowerCase() === 'gr' ? 'gr' : po.status.toLowerCase()}`}>
+            {po.status === 'GR' ? 'Goods Receipt' : po.status}
           </span>
         </div>
-        <button className="toggle-btn">
-          {isExpanded ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          )}
-        </button>
       </div>
 
-      {isExpanded && (
-        <div className="po-card-body">
-          <table className="history-table">
-            <thead>
-              <tr>
-                <th>Tanggal</th>
-                <th>Transit</th>
-                <th>Datang</th>
-                <th>Keterangan</th>
+      <div className="po-card-body" style={{display: isExpanded ? 'block' : 'none'}}>
+        <table className="history-table">
+          <thead>
+            <tr>
+              <th>No GR</th>
+              <th>Tanggal</th>
+              <th>Transit MKR</th>
+              <th>Datang</th>
+              <th>PIC</th>
+              <th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {po.history.map((h, i) => (
+              <tr key={i}>
+                <td className="font-medium text-dark">{h.noGr}</td>
+                <td>{h.tanggal}</td>
+                <td className="text-blue">{formatNumber(h.transit)}</td>
+                <td className="text-green">{formatNumber(h.datang)}</td>
+                <td>{h.pic}</td>
+                <td className="text-muted">{h.keterangan}</td>
               </tr>
-            </thead>
-            <tbody>
-              {po.history.map((h, i) => (
-                <tr key={i}>
-                  <td>{h.tanggal}</td>
-                  <td className="font-medium">{formatNumber(h.transit)}</td>
-                  <td className="font-medium">{formatNumber(h.datang)}</td>
-                  <td className="text-muted">{h.keterangan}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="po-card-footer">
-            Order {formatNumber(po.order)} · Datang {formatNumber(po.datang)} · Sisa {formatNumber(po.sisa)}
-          </div>
+            ))}
+          </tbody>
+        </table>
+        <div className="po-card-footer text-sm">
+          <span className="font-medium">Order {formatNumber(po.order)}</span> <span style={{margin: '0 6px', color: '#CBD5E1'}}>|</span> <span className="font-medium">Datang {formatNumber(po.datang)}</span> <span style={{margin: '0 6px', color: '#CBD5E1'}}>|</span> <span className="font-medium">Sisa {formatNumber(po.sisa)}</span>
         </div>
-      )}
+      </div>
     </div>
   );
 };

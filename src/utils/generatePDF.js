@@ -101,7 +101,7 @@ export function generatePDF(company, cust, rows, statusFilter) {
 
   // Status di kanan (sejajar vertikal)
   const statusText   = statusFilter === 'OPEN'  ? 'Open' :
-                       statusFilter === 'LUNAS' ? 'Lunas' : 'Open/Close';
+                       statusFilter === 'CLOSE' ? 'Close' : 'Open/Close';
   const statusLabelX = pageW - margin - 50;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
@@ -211,9 +211,9 @@ export function generatePDF(company, cust, rows, statusFilter) {
   doc.setFontSize(10);
   doc.setTextColor(...WHITE);
 
-  const labelTotal = statusFilter === 'LUNAS'
-    ? 'TOTAL TAGIHAN LUNAS'
-    : 'TOTAL TAGIHAN BELUM LUNAS';
+  const labelTotal = statusFilter === 'CLOSE'
+    ? 'TOTAL TAGIHAN CLOSE'
+    : 'TOTAL TAGIHAN BELUM CLOSE';
 
   // Lebar area label = kolom No + No Invoice + Tgl Invoice + Jatuh Tempo
   const labelAreaW = COL_W[0] + COL_W[1] + COL_W[2] + COL_W[3]; // 12+36+28+28 = 104

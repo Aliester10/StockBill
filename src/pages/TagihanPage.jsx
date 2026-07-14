@@ -38,7 +38,7 @@ function displayDateToHtml(val) {
 const emptyForm = () => ({
   customerId: '', namaCustomer: '', noInvoice: '',
   tglInvoice: '', jatuhTempo: '', nominal: '',
-  status: 'OPEN', tglLunas: '', umur: '0',
+  status: 'OPEN', tglClose: '', umur: '0',
 });
 
 export default function TagihanPage() {
@@ -96,7 +96,7 @@ export default function TagihanPage() {
         const jt = name === 'jatuhTempo' ? htmlDateToDisplay(value) : htmlDateToDisplay(prev.jatuhTempo);
         u.umur = u.status === 'OPEN' ? String(hitungUmur(jt)) : '0';
       }
-      if (name === 'status' && value === 'OPEN') u.tglLunas = '';
+      if (name === 'status' && value === 'OPEN') u.tglClose = '';
       return u;
     });
   }
@@ -127,7 +127,7 @@ export default function TagihanPage() {
       customerId: r.customerId, namaCustomer: r.namaCustomer, noInvoice: r.noInvoice,
       tglInvoice: displayDateToHtml(r.tglInvoice), jatuhTempo: displayDateToHtml(r.jatuhTempo),
       nominal: String(r.nominal), status: r.status,
-      tglLunas: displayDateToHtml(r.tglLunas), umur: String(r.umur),
+      tglClose: displayDateToHtml(r.tglClose), umur: String(r.umur),
     });
     setNominalDisplay(r.nominal ? Number(r.nominal).toLocaleString('id-ID') : '');
     setEditIndex(idx); setShowForm(true);
@@ -144,7 +144,7 @@ export default function TagihanPage() {
       noInvoice: form.noInvoice.trim(),
       tglInvoice: htmlDateToDisplay(form.tglInvoice), jatuhTempo: htmlDateToDisplay(form.jatuhTempo),
       nominal: parseNominalInput(form.nominal), status: form.status,
-      tglLunas: form.status === 'LUNAS' ? htmlDateToDisplay(form.tglLunas) : '',
+      tglClose: form.status === 'CLOSE' ? htmlDateToDisplay(form.tglClose) : '',
       umur: Number(form.umur) || 0,
     };
     if (editIndex !== null) { updateTagihanRow(editIndex, row); showToast('Data diupdate!', 'success'); }
@@ -160,7 +160,7 @@ export default function TagihanPage() {
     const cust = { id: custRows[0].customerId, name: custRows[0].namaCustomer };
     let rows = custRows;
     if (selStatus === 'OPEN')  rows = custRows.filter(r => r.status === 'OPEN');
-    if (selStatus === 'LUNAS') rows = custRows.filter(r => r.status === 'LUNAS');
+    if (selStatus === 'CLOSE') rows = custRows.filter(r => r.status === 'CLOSE');
     if (!rows.length) { showToast(`Tidak ada tagihan status "${selStatus}".`, 'error'); return null; }
     return { cust, rows };
   }
@@ -181,7 +181,7 @@ export default function TagihanPage() {
   const totalOpen    = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
   const previewRows  = selCustomer ? tagihanRows.filter(r => r.customerId === selCustomer) : [];
   const previewOpen  = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
-  const previewLunas = previewRows.filter(r => r.status === 'LUNAS').reduce((s, r) => s + r.nominal, 0);
+  const previewClose = previewRows.filter(r => r.status === 'CLOSE').reduce((s, r) => s + r.nominal, 0);
   const matchedCust  = customers.find(c => c.id === form.customerId);
 
   // ── Render ───────────────────────────────────────────────────
@@ -222,9 +222,9 @@ export default function TagihanPage() {
                 <div className="form-group">
                   <label>Filter Status</label>
                   <select className="form-control" value={selStatus} onChange={e => setSelStatus(e.target.value)}>
-                    <option value="ALL">Semua (Open &amp; Lunas)</option>
-                    <option value="OPEN">Open — Belum Lunas</option>
-                    <option value="LUNAS">Lunas</option>
+                    <option value="ALL">Semua (Open &amp; Close)</option>
+                    <option value="OPEN">Open — Belum Close</option>
+                    <option value="CLOSE">Close</option>
                   </select>
                 </div>
                 <div className="generate-btn-group">
@@ -240,7 +240,7 @@ export default function TagihanPage() {
                 <SoaPreview
                   cust={customers.find(c => c.id === selCustomer)}
                   rows={previewRows} selStatus={selStatus}
-                  previewOpen={previewOpen} previewLunas={previewLunas}
+                  previewOpen={previewOpen} previewClose={previewClose}
                 />
               )}
             </>
@@ -284,7 +284,7 @@ export default function TagihanPage() {
               ['Total Invoice', displayed.length, null],
               ['Total Nominal', 'Rp ' + formatRp(totalSemua), 'var(--dark-blue)'],
               ['Total Open',    'Rp ' + formatRp(totalOpen),  'var(--dark-red)'],
-              ['Total Lunas',   'Rp ' + formatRp(totalSemua - totalOpen), 'var(--success)'],
+              ['Total Close',   'Rp ' + formatRp(totalSemua - totalOpen), 'var(--success)'],
             ].map(([lbl, val, color], i, arr) => (
               <span key={lbl} style={{ display: 'contents' }}>
                 <div className="summary-item">
@@ -323,10 +323,10 @@ export default function TagihanPage() {
                 <tr>
                   <th style={{ width: 40 }}>No</th>
                   <th>Customer ID</th><th>Nama Customer</th>
-                  <th>No Invoice</th><th>Tgl Invoice</th><th>Jatuh Tempo</th>
+                  <th>No Invoice</th><th>Tgl Invoice</th><th>Tgl Jatuh Tempo</th>
                   <th style={{ textAlign: 'right' }}>Nominal (Rp)</th>
-                  <th>Status</th><th>Tgl Lunas</th>
-                  <th style={{ width: 44 }}>Umur</th>
+                  <th>Status</th><th>Tgl Close</th>
+                  <th style={{ width: 80 }}>Jatuh Tempo</th>
                   <th style={{ width: 80 }}>Aksi</th>
                 </tr>
               </thead>
@@ -342,8 +342,8 @@ export default function TagihanPage() {
                       <td className="center-cell">{r.tglInvoice}</td>
                       <td className="center-cell">{r.jatuhTempo}</td>
                       <td className="nominal-cell">{formatRp(r.nominal)}</td>
-                      <td><span className={r.status === 'OPEN' ? 'status-open' : 'status-lunas'}>{r.status}</span></td>
-                      <td className="center-cell">{r.tglLunas || '—'}</td>
+                      <td><span className={r.status === 'OPEN' ? 'status-open' : 'status-close'}>{r.status}</span></td>
+                      <td className="center-cell">{r.tglClose || '—'}</td>
                       <td className="center-cell">{r.umur}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
@@ -436,18 +436,18 @@ export default function TagihanPage() {
               <label>Status</label>
               <select name="status" className="form-control" value={form.status} onChange={handleChange}>
                 <option value="OPEN">OPEN</option>
-                <option value="LUNAS">LUNAS</option>
+                <option value="CLOSE">CLOSE</option>
               </select>
             </div>
           </div>
-          {form.status === 'LUNAS' && (
+          {form.status === 'CLOSE' && (
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Tgl Lunas</label>
-                <input type="date" name="tglLunas" className="form-control" value={form.tglLunas} onChange={handleChange} />
+                <label>Tgl Close</label>
+                <input type="date" name="tglClose" className="form-control" value={form.tglClose} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Umur (hari)</label>
+                <label>Jatuh Tempo (hari)</label>
                 <input className="form-control" value="0" readOnly
                   style={{ background: '#F8FAFC', color: 'var(--text-sub)' }} />
               </div>
@@ -458,7 +458,7 @@ export default function TagihanPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
               </svg>
-              Umur otomatis: <strong>{form.umur} hari</strong> dari jatuh tempo ke hari ini
+              Jatuh Tempo otomatis: <strong>{form.umur} hari</strong> dari tgl jatuh tempo ke hari ini
             </div>
           )}
         </Modal>
@@ -492,14 +492,14 @@ export default function TagihanPage() {
 }
 
 // ── Sub-komponen ──────────────────────────────────────────────────
-function SoaPreview({ cust, rows, selStatus, previewOpen, previewLunas }) {
+function SoaPreview({ cust, rows, selStatus, previewOpen, previewClose }) {
   const count = selStatus === 'OPEN'  ? rows.filter(r => r.status === 'OPEN').length
-              : selStatus === 'LUNAS' ? rows.filter(r => r.status === 'LUNAS').length
+              : selStatus === 'CLOSE' ? rows.filter(r => r.status === 'CLOSE').length
               : rows.length;
-  const label = selStatus === 'OPEN' ? 'Open' : selStatus === 'LUNAS' ? 'Lunas' : 'Open/Close';
-  const total = selStatus === 'LUNAS' ? previewLunas
+  const label = selStatus === 'OPEN' ? 'Open' : selStatus === 'CLOSE' ? 'Close' : 'Open/Close';
+  const total = selStatus === 'CLOSE' ? previewClose
               : selStatus === 'OPEN'  ? previewOpen
-              : previewOpen + previewLunas;
+              : previewOpen + previewClose;
   return (
     <div className="soa-preview-box">
       <div className="soa-preview-label">Preview SOA yang akan digenerate:</div>
@@ -518,7 +518,7 @@ function SoaPreview({ cust, rows, selStatus, previewOpen, previewLunas }) {
           <div className="soa-preview-right">
             <div className="soa-preview-item">
               <span className="soa-key">Status</span><span className="soa-sep">:</span>
-              <span className={`soa-val ${selStatus === 'OPEN' ? 'status-open' : selStatus === 'LUNAS' ? 'status-lunas' : ''}`}>{label}</span>
+              <span className={`soa-val ${selStatus === 'OPEN' ? 'status-open' : selStatus === 'CLOSE' ? 'status-close' : ''}`}>{label}</span>
             </div>
             <div className="soa-preview-item">
               <span className="soa-key">Invoice</span><span className="soa-sep">:</span>

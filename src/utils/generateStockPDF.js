@@ -100,7 +100,7 @@ export function generateStockPDF(productName, data) {
     // Add PO Header row
     tableRows.push([
       { content: `${index + 1}`, styles: { fontStyle: 'bold', halign: 'center' } },
-      { content: `PO ${po.noPo} - ${po.vendor} (Status: ${po.status})`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
+      { content: `PO ${po.noPo} - ${po.vendor} (Status: ${po.status}${po.noGr ? `, GR: ${po.noGr}` : ''}${po.pic ? `, PIC: ${po.pic}` : ''})`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
     ]);
 
     // Add PO summary row

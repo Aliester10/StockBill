@@ -209,7 +209,7 @@ body {
 
 /* STATUS */
 .status-open  { color: var(--dark-red); font-weight: 700; }
-.status-lunas { color: var(--success);  font-weight: 700; }
+.status-close { color: var(--success);  font-weight: 700; }
 
 /* MODAL */
 .modal-overlay {
@@ -696,8 +696,9 @@ tfoot tr td { border-top: 2px solid var(--border) !important; }
 
 .stat-card {
   background: #F8FAFC;
+  border: 1px solid #E2E8F0;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
 }
 
 .stat-label {
@@ -799,11 +800,12 @@ tfoot tr td { border-top: 2px solid var(--border) !important; }
 }
 
 .po-card-footer {
-  padding: 1rem 1.5rem;
-  background: white;
-  font-weight: 600;
-  font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
+  background: #F8FAFC;
+  font-weight: 500;
+  font-size: 0.85rem;
   color: #0F172A;
+  border-top: 1px solid #E2E8F0;
 }
 
 /* --- Stock Add Modal --- */
@@ -865,7 +867,8 @@ tfoot tr td { border-top: 2px solid var(--border) !important; }
   margin-bottom: 0.5rem;
 }
 
-.add-stock-form input {
+.add-stock-form input,
+.add-stock-form select {
   width: 100%;
   box-sizing: border-box;
   padding: 0.6rem 0.75rem;
@@ -877,7 +880,8 @@ tfoot tr td { border-top: 2px solid var(--border) !important; }
   transition: border-color 0.2s;
 }
 
-.add-stock-form input:focus {
+.add-stock-form input:focus,
+.add-stock-form select:focus {
   border-color: var(--dark-blue);
   box-shadow: 0 0 0 2px rgba(31, 56, 100, 0.1);
 }

@@ -73,7 +73,7 @@ export default function UploadPage() {
     const cust = { id: custRows[0].customerId, name: custRows[0].namaCustomer };
     let rows   = custRows;
     if (selStatus === 'OPEN')  rows = custRows.filter(r => r.status === 'OPEN');
-    if (selStatus === 'LUNAS') rows = custRows.filter(r => r.status === 'LUNAS');
+    if (selStatus === 'CLOSE') rows = custRows.filter(r => r.status === 'CLOSE');
 
     if (rows.length === 0) {
       showToast(`Tidak ada tagihan dengan status "${selStatus}" untuk customer ini.`, 'error');
@@ -113,7 +113,7 @@ export default function UploadPage() {
   // Summary customer yang dipilih
   const previewRows  = selCustomer ? tagihanRows.filter(r => r.customerId === selCustomer) : [];
   const previewOpen  = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
-  const previewLunas = previewRows.filter(r => r.status === 'LUNAS').reduce((s, r) => s + r.nominal, 0);
+  const previewClose = previewRows.filter(r => r.status === 'CLOSE').reduce((s, r) => s + r.nominal, 0);
 
   return (
     <>
@@ -171,7 +171,7 @@ export default function UploadPage() {
             </div>
             <p className="upload-text">Klik atau drag &amp; drop file Excel (.xlsx / .xls)</p>
             <p className="upload-hint">
-              Format kolom: No | Customer ID | Nama Customer | No Invoice | Tgl Invoice | Jatuh Tempo | Nominal | Status | Tgl Lunas | Umur
+              Format kolom: No | Customer ID | Nama Customer | No Invoice | Tgl Invoice | Jatuh Tempo | Nominal | Status | Tgl Close | Umur
             </p>
             <input
               ref={fileInputRef} type="file" accept=".xlsx,.xls"
@@ -263,9 +263,9 @@ export default function UploadPage() {
                     value={selStatus}
                     onChange={e => setSelStatus(e.target.value)}
                   >
-                    <option value="ALL">Semua (Open &amp; Lunas)</option>
-                    <option value="OPEN">Open — Belum Lunas</option>
-                    <option value="LUNAS">Lunas</option>
+                    <option value="ALL">Semua (Open &amp; Close)</option>
+                    <option value="OPEN">Open — Belum Close</option>
+                    <option value="CLOSE">Close</option>
                   </select>
                 </div>
 
@@ -311,7 +311,7 @@ export default function UploadPage() {
                   rows={previewRows}
                   selStatus={selStatus}
                   previewOpen={previewOpen}
-                  previewLunas={previewLunas}
+                  previewClose={previewClose}
                 />
               )}
             </>
@@ -323,20 +323,20 @@ export default function UploadPage() {
 }
 
 /* ── Preview info SOA sebelum generate ── */
-function SoaPreview({ cust, rows, selStatus, previewOpen, previewLunas }) {
+function SoaPreview({ cust, rows, selStatus, previewOpen, previewClose }) {
   const filteredCount =
     selStatus === 'OPEN'  ? rows.filter(r => r.status === 'OPEN').length  :
-    selStatus === 'LUNAS' ? rows.filter(r => r.status === 'LUNAS').length :
+    selStatus === 'CLOSE' ? rows.filter(r => r.status === 'CLOSE').length :
     rows.length;
 
   const statusLabel =
     selStatus === 'OPEN'  ? 'Open' :
-    selStatus === 'LUNAS' ? 'Lunas' : 'Open/Close';
+    selStatus === 'CLOSE' ? 'Close' : 'Open/Close';
 
   const totalPreview =
-    selStatus === 'LUNAS' ? previewLunas :
+    selStatus === 'CLOSE' ? previewClose :
     selStatus === 'OPEN'  ? previewOpen  :
-    previewOpen + previewLunas;
+    previewOpen + previewClose;
 
   return (
     <div className="soa-preview-box">
@@ -359,7 +359,7 @@ function SoaPreview({ cust, rows, selStatus, previewOpen, previewLunas }) {
             <div className="soa-preview-item">
               <span className="soa-key">Status</span>
               <span className="soa-sep">:</span>
-              <span className={`soa-val ${selStatus === 'OPEN' ? 'status-open' : selStatus === 'LUNAS' ? 'status-lunas' : ''}`}>
+              <span className={`soa-val ${selStatus === 'OPEN' ? 'status-open' : selStatus === 'CLOSE' ? 'status-close' : ''}`}>
                 {statusLabel}
               </span>
             </div>

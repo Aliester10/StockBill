@@ -45,7 +45,7 @@ export function parseExcelFile(file) {
             jatuhTempo  : excelDateToStr(r[5]),
             nominal     : parseNominal(r[6]),
             status      : String(r[7] ?? '').trim().toUpperCase(),
-            tglLunas    : excelDateToStr(r[8]),
+            tglClose    : excelDateToStr(r[8]),
             umur        : parseUmur(r[9]),
           });
         }

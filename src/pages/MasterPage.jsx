@@ -11,14 +11,14 @@ export default function MasterPage() {
   const summary = customers.map(c => {
     const rows  = tagihanRows.filter(r => r.customerId === c.id);
     const open  = rows.filter(r => r.status === 'OPEN');
-    const lunas = rows.filter(r => r.status === 'LUNAS');
+    const close = rows.filter(r => r.status === 'CLOSE');
     return {
       ...c,
       totalInvoice  : rows.length,
       totalOpen     : open.reduce((s, r) => s + r.nominal, 0),
       countOpen     : open.length,
-      totalLunas    : lunas.reduce((s, r) => s + r.nominal, 0),
-      countLunas    : lunas.length,
+      totalClose    : close.reduce((s, r) => s + r.nominal, 0),
+      countClose    : close.length,
     };
   });
 
@@ -57,8 +57,8 @@ export default function MasterPage() {
                 <th style={{ textAlign: 'center' }}>Total Invoice</th>
                 <th style={{ textAlign: 'center' }}>Invoice Open</th>
                 <th style={{ textAlign: 'right'   }}>Total Open (Rp)</th>
-                <th style={{ textAlign: 'center' }}>Invoice Lunas</th>
-                <th style={{ textAlign: 'right'   }}>Total Lunas (Rp)</th>
+                <th style={{ textAlign: 'center' }}>Invoice Close</th>
+                <th style={{ textAlign: 'right'   }}>Total Close (Rp)</th>
               </tr>
             </thead>
             <tbody>
@@ -81,14 +81,14 @@ export default function MasterPage() {
                     }
                   </td>
                   <td className="center-cell">
-                    {c.countLunas > 0
-                      ? <span className="status-lunas">{c.countLunas}</span>
+                    {c.countClose > 0
+                      ? <span className="status-close">{c.countClose}</span>
                       : <span style={{ color: 'var(--text-sub)' }}>0</span>
                     }
                   </td>
                   <td className="nominal-cell">
-                    {c.totalLunas > 0
-                      ? <span style={{ color: 'var(--success)', fontWeight: 600 }}>{formatRp(c.totalLunas)}</span>
+                    {c.totalClose > 0
+                      ? <span style={{ color: 'var(--success)', fontWeight: 600 }}>{formatRp(c.totalClose)}</span>
                       : <span style={{ color: 'var(--text-sub)' }}>—</span>
                     }
                   </td>
@@ -106,7 +106,7 @@ export default function MasterPage() {
                 </td>
                 <td />
                 <td className="nominal-cell" style={{ color: 'var(--success)', padding: '10px 12px' }}>
-                  {formatRp(summary.reduce((s, c) => s + c.totalLunas, 0))}
+                  {formatRp(summary.reduce((s, c) => s + c.totalClose, 0))}
                 </td>
               </tr>
             </tfoot>

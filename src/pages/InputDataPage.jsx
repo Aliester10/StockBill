@@ -11,7 +11,7 @@ const emptyForm = () => ({
   jatuhTempo  : '',
   nominal     : '',
   status      : 'OPEN',
-  tglLunas    : '',
+  tglClose    : '',
   umur        : '0',
 });
 
@@ -82,9 +82,9 @@ export default function InputDataPage() {
         updated.umur = updated.status === 'OPEN' ? String(hitungUmur(jt)) : '0';
       }
 
-      // Auto-kosongkan tglLunas jika status kembali ke OPEN
+      // Auto-kosongkan tglClose jika status kembali ke OPEN
       if (name === 'status' && value === 'OPEN') {
-        updated.tglLunas = '';
+        updated.tglClose = '';
       }
 
       return updated;
@@ -149,7 +149,7 @@ export default function InputDataPage() {
       jatuhTempo  : displayDateToHtml(r.jatuhTempo),
       nominal     : String(r.nominal),
       status      : r.status,
-      tglLunas    : displayDateToHtml(r.tglLunas),
+      tglClose    : displayDateToHtml(r.tglClose),
       umur        : String(r.umur),
     });
     setNominalDisplay(r.nominal ? Number(r.nominal).toLocaleString('id-ID') : '');
@@ -174,7 +174,7 @@ export default function InputDataPage() {
       jatuhTempo  : htmlDateToDisplay(form.jatuhTempo),
       nominal     : parseNominalInput(form.nominal),
       status      : form.status,
-      tglLunas    : form.status === 'LUNAS' ? htmlDateToDisplay(form.tglLunas) : '',
+      tglClose    : form.status === 'CLOSE' ? htmlDateToDisplay(form.tglClose) : '',
       umur        : Number(form.umur) || 0,
     };
 
@@ -265,7 +265,7 @@ export default function InputDataPage() {
             </div>
             <div className="summary-divider" />
             <div className="summary-item">
-              <span className="summary-label">Total Lunas</span>
+              <span className="summary-label">Total Close</span>
               <span className="summary-value" style={{ color: 'var(--success)' }}>
                 Rp {formatRp(totalSemua - totalOpen)}
               </span>
@@ -304,7 +304,7 @@ export default function InputDataPage() {
                   <th>Jatuh Tempo</th>
                   <th style={{ textAlign: 'right' }}>Nominal (Rp)</th>
                   <th>Status</th>
-                  <th>Tgl Lunas</th>
+                  <th>Tgl Close</th>
                   <th style={{ width: 46 }}>Umur</th>
                   <th style={{ width: 100 }}>Aksi</th>
                 </tr>
@@ -323,11 +323,11 @@ export default function InputDataPage() {
                       <td className="center-cell">{r.jatuhTempo}</td>
                       <td className="nominal-cell">{formatRp(r.nominal)}</td>
                       <td>
-                        <span className={r.status === 'OPEN' ? 'status-open' : 'status-lunas'}>
+                        <span className={r.status === 'OPEN' ? 'status-open' : 'status-close'}>
                           {r.status}
                         </span>
                       </td>
-                      <td className="center-cell">{r.tglLunas || '—'}</td>
+                      <td className="center-cell">{r.tglClose || '—'}</td>
                       <td className="center-cell">{r.umur}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
@@ -482,20 +482,20 @@ export default function InputDataPage() {
               <label>Status</label>
               <select name="status" className="form-control" value={form.status} onChange={handleChange}>
                 <option value="OPEN">OPEN</option>
-                <option value="LUNAS">LUNAS</option>
+                <option value="CLOSE">CLOSE</option>
               </select>
             </div>
           </div>
 
-          {form.status === 'LUNAS' && (
+          {form.status === 'CLOSE' && (
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Tgl Lunas</label>
+                <label>Tgl Close</label>
                 <input
                   type="date"
-                  name="tglLunas"
+                  name="tglClose"
                   className="form-control"
-                  value={form.tglLunas}
+                  value={form.tglClose}
                   onChange={handleChange}
                 />
               </div>
