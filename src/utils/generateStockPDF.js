@@ -59,7 +59,10 @@ export function generateStockPDF(productName, data) {
 
   // Kotak 2: Total transit
   doc.setFontSize(9);
-  doc.text('Total transit', margin + statW, y);
+  doc.text('Total Transit', margin + statW, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('di MKR', margin + statW, y + 10);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(...TEXT_BLUE);
@@ -69,7 +72,10 @@ export function generateStockPDF(productName, data) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...TEXT_GRAY);
-  doc.text('Total datang', margin + statW * 2, y);
+  doc.text('Total Datang', margin + statW * 2, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('sudah sampai', margin + statW * 2, y + 10);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(...TEXT_GREEN);
@@ -79,7 +85,10 @@ export function generateStockPDF(productName, data) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...TEXT_GRAY);
-  doc.text('Total sisa', margin + statW * 3, y);
+  doc.text('Total Sisa', margin + statW * 3, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('belum datang', margin + statW * 3, y + 10);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(...TEXT_RED);
@@ -100,16 +109,13 @@ export function generateStockPDF(productName, data) {
     // Add PO Header row
     tableRows.push([
       { content: `${index + 1}`, styles: { fontStyle: 'bold', halign: 'center' } },
-      { content: `PO ${po.noPo} - ${po.vendor} (Status: ${po.status}${po.noGr ? `, GR: ${po.noGr}` : ''}${po.pic ? `, PIC: ${po.pic}` : ''})`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
+      { content: `PO ${po.noPo} | ${po.vendor} (Status: ${po.status})`, colSpan: 6, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
     ]);
 
     // Add PO summary row
     tableRows.push([
       '', 
-      { content: 'Total PO:', styles: { fontStyle: 'italic', textColor: [100, 116, 139] } }, 
-      { content: `Order: ${formatNumber(po.order)}`, styles: { fontStyle: 'bold' } }, 
-      { content: `Datang: ${formatNumber(po.datang)}`, styles: { fontStyle: 'bold', textColor: [22, 163, 74] } }, 
-      { content: `Sisa: ${formatNumber(po.sisa)}`, styles: { fontStyle: 'bold', textColor: [220, 38, 38] } }
+      { content: `Order ${formatNumber(po.order)} | Datang ${formatNumber(po.datang)} | Sisa ${formatNumber(po.sisa)}`, colSpan: 6, styles: { fontStyle: 'bold', textColor: [15, 23, 42], fillColor: [248, 250, 252] } }
     ]);
 
     // Add History details
@@ -117,20 +123,22 @@ export function generateStockPDF(productName, data) {
       po.history.forEach(hist => {
         tableRows.push([
           '',
+          hist.noGr || '-',
           hist.tanggal,
           formatNumber(hist.transit),
           formatNumber(hist.datang),
+          hist.pic || '-',
           hist.keterangan || '-'
         ]);
       });
     } else {
-      tableRows.push(['', '-', '-', '-', 'Belum ada riwayat']);
+      tableRows.push(['', '-', '-', '-', '-', '-', 'Belum ada riwayat']);
     }
   });
 
   autoTable(doc, {
     startY: y,
-    head: [['No', 'Tanggal', 'Transit', 'Datang', 'Keterangan']],
+    head: [['No', 'No GR', 'Tanggal', 'Transit MKR', 'Datang', 'PIC', 'Keterangan']],
     body: tableRows,
     theme: 'grid',
     headStyles: {
@@ -140,11 +148,13 @@ export function generateStockPDF(productName, data) {
       halign: 'center'
     },
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 40 },
-      2: { cellWidth: 30, halign: 'right' },
-      3: { cellWidth: 30, halign: 'right' },
-      4: { cellWidth: 'auto' }
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 25 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 22, halign: 'right' },
+      4: { cellWidth: 20, halign: 'right' },
+      5: { cellWidth: 25 },
+      6: { cellWidth: 'auto' }
     },
     styles: {
       fontSize: 9,
