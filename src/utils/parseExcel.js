@@ -47,6 +47,9 @@ export function parseExcelFile(file) {
             status      : String(r[7] ?? '').trim().toUpperCase(),
             tglClose    : excelDateToStr(r[8]),
             umur        : parseUmur(r[9]),
+            terminId    : '',
+            terminName  : '',
+            baseNominal : parseNominal(r[6]),
           });
         }
         resolve(result);

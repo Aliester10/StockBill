@@ -51,21 +51,22 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   // C(No Invoice), D(Tgl Invoice), E(Jatuh Tempo),
   // F(Nominal Rp), G(Umur hari), H (margin kanan)
   ws.columns = [
-    { key: 'A', width: 3.5  },  // A - margin kiri (tidak berubah)
-    { key: 'B', width: 11   },  // B - cukup untuk "Kepada :" + No tabel
-    { key: 'C', width: 16   },  // C - No Invoice
-    { key: 'D', width: 14   },  // D - Tgl Invoice
-    { key: 'E', width: 14   },  // E - Jatuh Tempo
-    { key: 'F', width: 17   },  // F - Nominal (Rp)
-    { key: 'G', width: 13   },  // G - Umur (hari)
-    { key: 'H', width: 3.5  },  // H - margin kanan
+    { key: 'A', width: 3.5  },  // A - margin kiri
+    { key: 'B', width: 8    },  // B - No
+    { key: 'C', width: 14   },  // C - No Invoice
+    { key: 'D', width: 13   },  // D - Tgl Invoice
+    { key: 'E', width: 13   },  // E - Tgl Jatuh Tempo
+    { key: 'F', width: 12   },  // F - Termin
+    { key: 'G', width: 16   },  // G - Nominal (Rp)
+    { key: 'H', width: 11   },  // H - Jatuh Tempo (hari)
+    { key: 'I', width: 3.5  },  // I - margin kanan
   ];
 
   // ═══════════════════════════════════════════════════════════════
   // BARIS 1 — Judul STATEMENT OF ACCOUNT
   // ═══════════════════════════════════════════════════════════════
   ws.getRow(1).height = 40;
-  ws.mergeCells('A1:H1');
+  ws.mergeCells('A1:I1');
   const r1 = ws.getCell('A1');
   r1.value     = 'STATEMENT OF ACCOUNT';
   r1.font      = { bold: true, size: 16, name: 'Calibri' };
@@ -75,7 +76,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   // BARIS 2 — Info perusahaan
   // ═══════════════════════════════════════════════════════════════
   ws.getRow(2).height = 20;
-  ws.mergeCells('A2:H2');
+  ws.mergeCells('A2:I2');
   const r2 = ws.getCell('A2');
   r2.value     = `${company.name}  |  ${company.address}  |  Telp ${company.telp}`;
   r2.font      = { size: 10, name: 'Calibri' };
@@ -111,15 +112,15 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     right : bd('thin', 'FF000000'),
   };
 
-  // "Status :" di kolom F (kanan)
-  const c4F = ws.getCell('F4');
+  // "Status :" di kolom H (kanan)
+  const c4F = ws.getCell('H4');
   c4F.value     = 'Status :';
   c4F.font      = { bold: true, name: 'Calibri' };
   c4F.alignment = { horizontal: 'right', vertical: 'middle' };
 
-  // Nilai status di kolom G
+  // Nilai status di kolom I
   const statusText = statusFilter === 'OPEN' ? 'Open' : statusFilter === 'CLOSE' ? 'Close' : 'Open/Close';
-  const c4G = ws.getCell('G4');
+  const c4G = ws.getCell('I4');
   c4G.value     = statusText;
   c4G.font      = { name: 'Calibri' };
   c4G.alignment = AL;
@@ -149,8 +150,9 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     { col: 'C', label: 'No Invoice',   align: AC },
     { col: 'D', label: 'Tgl Invoice',  align: AC },
     { col: 'E', label: 'Tgl Jatuh Tempo',  align: AC },
-    { col: 'F', label: 'Nominal (Rp)', align: AC },
-    { col: 'G', label: 'Jatuh Tempo',  align: AC },
+    { col: 'F', label: 'Termin',       align: AC },
+    { col: 'G', label: 'Sisa Tagihan', align: AC },
+    { col: 'H', label: 'Jatuh Tempo',  align: AC },
   ];
   tblHeaders.forEach(({ col, label, align }) => {
     const cell    = ws.getCell(`${col}7`);
@@ -178,23 +180,27 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     // Kolom C: No Invoice
     setDataCell(ws, rowNum, 'C', r.noInvoice, bg, { ...AC });
 
-    // Kolom D: Tgl Invoice — simpan sebagai string agar tidak berubah format
+    // Kolom D: Tgl Invoice
     setDataCell(ws, rowNum, 'D', r.tglInvoice, bg, { ...AC });
 
-    // Kolom E: Jatuh Tempo
+    // Kolom E: Tgl Jatuh Tempo
     setDataCell(ws, rowNum, 'E', r.jatuhTempo, bg, { ...AC });
 
-    // Kolom F: Nominal — simpan sebagai number, format #,##0
-    const cellF = ws.getCell(rowNum, colIndex('F'));
-    cellF.value     = r.nominal;
-    cellF.numFmt    = '#,##0';
-    cellF.fill      = fillSolid(bg);
-    cellF.alignment = AR;
-    cellF.border    = borderTable();
-    cellF.font      = { name: 'Calibri' };
+    // Kolom F: Termin
+    const tNameFormat = r.terminName ? r.terminName.replace(/Termin\s+/i, '') : '-';
+    setDataCell(ws, rowNum, 'F', tNameFormat, bg, { ...AC });
 
-    // Kolom G: Umur
-    setDataCell(ws, rowNum, 'G', r.umur, bg, { ...AC });
+    // Kolom G: Nominal
+    const cellG = ws.getCell(rowNum, colIndex('G'));
+    cellG.value     = r.nominal;
+    cellG.numFmt    = '#,##0';
+    cellG.fill      = fillSolid(bg);
+    cellG.alignment = AR;
+    cellG.border    = borderTable();
+    cellG.font      = { name: 'Calibri' };
+
+    // Kolom H: Umur
+    setDataCell(ws, rowNum, 'H', r.umur, bg, { ...AC });
 
     totalNominal += r.nominal;
   });
@@ -214,24 +220,25 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   ws.getRow(TOTAL_ROW).height = 30;
   const labelTotal = statusFilter === 'CLOSE' ? 'TOTAL TAGIHAN CLOSE' : 'TOTAL TAGIHAN BELUM CLOSE';
 
-  ws.mergeCells(`B${TOTAL_ROW}:E${TOTAL_ROW}`);
+  ws.mergeCells(`B${TOTAL_ROW}:F${TOTAL_ROW}`);
   const cellTotLabel = ws.getCell(`B${TOTAL_ROW}`);
   cellTotLabel.value     = labelTotal;
   cellTotLabel.font      = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
   cellTotLabel.fill      = fillSolid(DARK_RED);
   cellTotLabel.alignment = AC;
 
-  const cellTotVal = ws.getCell(`F${TOTAL_ROW}`);
+  const cellTotVal = ws.getCell(`G${TOTAL_ROW}`);
   cellTotVal.value     = totalNominal;
-  cellTotVal.numFmt    = '#,##0';
-  cellTotVal.font      = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
+  cellTotVal.font      = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 12 };
   cellTotVal.fill      = fillSolid(DARK_RED);
-  cellTotVal.alignment = AC;
+  cellTotVal.alignment = { horizontal: 'right', vertical: 'middle' };
+  cellTotVal.numFmt    = '#,##0';
 
-  const cellTotG = ws.getCell(`G${TOTAL_ROW}`);
-  cellTotG.fill      = fillSolid(DARK_RED);
-  cellTotG.border    = borderTable();
-  cellTotG.alignment = AC;
+  // H kosong
+  const cellTotEmpty = ws.getCell(`H${TOTAL_ROW}`);
+  cellTotEmpty.fill = fillSolid(DARK_RED);
+  cellTotEmpty.border = borderTable();
+  cellTotEmpty.alignment = AC;
 
   // ═══════════════════════════════════════════════════════════════
   // Terbilang, Pesan, Hormat kami

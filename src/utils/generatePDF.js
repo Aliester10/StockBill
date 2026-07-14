@@ -29,7 +29,7 @@ export function generatePDF(company, cust, rows, statusFilter) {
   const contentW = pageW - margin * 2;                // 180
 
   // Lebar tiap kolom — harus konsisten antara tabel dan total bar
-  const COL_W = [12, 36, 28, 28, 48, 28]; // No, NoInv, TglInv, JatuhTempo, Nominal, Umur
+  const COL_W = [10, 32, 26, 26, 30, 36, 20]; // No, NoInv, TglInv, JatuhTempo, Termin, Nominal, Umur
   // total = 180 ✓
 
   // X start tiap kolom (absolute dari kiri halaman)
@@ -129,6 +129,7 @@ export function generatePDF(company, cust, rows, statusFilter) {
     r.noInvoice,
     r.tglInvoice,
     r.jatuhTempo,
+    r.terminName ? r.terminName.replace(/Termin\s+/i, '') : '-',
     formatRp(r.nominal),
     r.umur,
   ]);
@@ -139,7 +140,7 @@ export function generatePDF(company, cust, rows, statusFilter) {
 
   autoTable(doc, {
     startY      : y,
-    head        : [['No', 'No Invoice', 'Tgl Invoice', 'Jatuh Tempo', 'Nominal (Rp)', 'Umur (hari)']],
+    head        : [['No', 'No Invoice', 'Tgl Invoice', 'Tgl Jatuh Tempo', 'Termin', 'Sisa Tagihan', 'Jatuh Tempo']],
     body        : tableData,
     margin      : { left: margin, right: margin },
     tableWidth  : contentW,
@@ -149,8 +150,9 @@ export function generatePDF(company, cust, rows, statusFilter) {
       1: { cellWidth: COL_W[1], halign: 'center' },
       2: { cellWidth: COL_W[2], halign: 'center' },
       3: { cellWidth: COL_W[3], halign: 'center' },
-      4: { cellWidth: COL_W[4], halign: 'center' }, // Nominal — center
-      5: { cellWidth: COL_W[5], halign: 'center' },
+      4: { cellWidth: COL_W[4], halign: 'center' },
+      5: { cellWidth: COL_W[5], halign: 'center' }, // Nominal
+      6: { cellWidth: COL_W[6], halign: 'center' },
     },
 
     headStyles: {
@@ -215,9 +217,9 @@ export function generatePDF(company, cust, rows, statusFilter) {
     ? 'TOTAL TAGIHAN CLOSE'
     : 'TOTAL TAGIHAN BELUM CLOSE';
 
-  // Lebar area label = kolom No + No Invoice + Tgl Invoice + Jatuh Tempo
-  const labelAreaW = COL_W[0] + COL_W[1] + COL_W[2] + COL_W[3]; // 12+36+28+28 = 104
-  // Label di tengah area kolom 0–3
+  // Lebar area label = kolom No + No Invoice + Tgl Invoice + Jatuh Tempo + Termin
+  const labelAreaW = COL_W[0] + COL_W[1] + COL_W[2] + COL_W[3] + COL_W[4]; 
+  // Label di tengah area kolom 0–4
   doc.text(
     labelTotal,
     totalBarX + labelAreaW / 2,
@@ -225,10 +227,9 @@ export function generatePDF(company, cust, rows, statusFilter) {
     { align: 'center' }
   );
 
-  // Nominal di tengah area kolom 4 (Nominal)
-  // X start kolom Nominal = margin + COL_W[0]+[1]+[2]+[3] = 15 + 104 = 119
+  // Nominal di tengah area kolom 5 (Nominal)
   const nominalColX  = totalBarX + labelAreaW;
-  const nominalColW  = COL_W[4]; // 48
+  const nominalColW  = COL_W[5]; 
   doc.text(
     formatRp(totalNominal),
     nominalColX + nominalColW / 2,

@@ -13,6 +13,9 @@ const emptyForm = () => ({
   status      : 'OPEN',
   tglClose    : '',
   umur        : '0',
+  terminId    : '',
+  terminName  : '',
+  baseNominal : ''
 });
 
 // Format angka ke Rupiah untuk display
@@ -32,14 +35,10 @@ function parseNominalInput(str) {
 function hitungUmur(jatuhTempoStr) {
   if (!jatuhTempoStr) return 0;
   try {
-    const parts = jatuhTempoStr.split('/');
-    if (parts.length !== 3) return 0;
-    const [d, m, y] = parts;
-    const tgl  = new Date(Number(y), Number(m) - 1, Number(d));
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diff = Math.floor((today - tgl) / 86400000);
-    return diff > 0 ? diff : 0;
+    const [d, m, y] = jatuhTempoStr.split('/');
+    const tgl = new Date(Number(y), Number(m) - 1, Number(d));
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return Math.floor((tgl - today) / 86400000);
   } catch { return 0; }
 }
 
@@ -60,7 +59,7 @@ function displayDateToHtml(val) {
 export default function InputDataPage() {
   const {
     tagihanRows, addTagihanRow, updateTagihanRow,
-    deleteTagihanRow, clearAllTagihan, customers, showToast,
+    deleteTagihanRow, clearAllTagihan, customers, showToast, termins
   } = useApp();
 
   const [form,      setForm]      = useState(emptyForm());
@@ -126,10 +125,47 @@ export default function InputDataPage() {
     }));
   }
 
+  function handleTerminChange(e) {
+    const tId = e.target.value;
+    const tObj = termins.find(t => t.id === tId);
+    let newNominal = form.baseNominal;
+    let tName = '';
+    
+    if (tObj && form.baseNominal) {
+      const bn = Number(form.baseNominal);
+      newNominal = String(Math.round(bn * (tObj.percent / 100)));
+      tName = `${tObj.name.replace(/Termin\s+/i, '')} (${tObj.percent}%)`;
+    }
+    
+    setForm(prev => ({
+      ...prev,
+      terminId: tId,
+      terminName: tName,
+      nominal: newNominal
+    }));
+    
+    if (newNominal) {
+      setNominalDisplay(formatRp(newNominal));
+    } else {
+      setNominalDisplay('');
+    }
+  }
+
   function handleNominalChange(e) {
-    const raw = e.target.value.replace(/[^0-9]/g, '');
-    setNominalDisplay(raw ? Number(raw).toLocaleString('id-ID') : '');
-    setForm(prev => ({ ...prev, nominal: raw }));
+    let val = e.target.value.replace(/[^0-9]/g, '');
+    setNominalDisplay(formatRp(val));
+    
+    let finalNominal = val;
+    let tName = form.terminName;
+    
+    if (form.terminId) {
+      const tObj = termins.find(t => t.id === form.terminId);
+      if (tObj) {
+        finalNominal = String(Math.round(Number(val) * (tObj.percent / 100)));
+      }
+    }
+    
+    setForm(prev => ({ ...prev, baseNominal: val, nominal: finalNominal }));
   }
 
   function openAdd() {
@@ -151,8 +187,11 @@ export default function InputDataPage() {
       status      : r.status,
       tglClose    : displayDateToHtml(r.tglClose),
       umur        : String(r.umur),
+      terminId    : r.terminId || '',
+      terminName  : r.terminName || '',
+      baseNominal : r.baseNominal || String(r.nominal),
     });
-    setNominalDisplay(r.nominal ? Number(r.nominal).toLocaleString('id-ID') : '');
+    setNominalDisplay(r.baseNominal ? Number(r.baseNominal).toLocaleString('id-ID') : (r.nominal ? Number(r.nominal).toLocaleString('id-ID') : ''));
     setEditIndex(index);
     setShowForm(true);
   }
@@ -176,6 +215,9 @@ export default function InputDataPage() {
       status      : form.status,
       tglClose    : form.status === 'CLOSE' ? htmlDateToDisplay(form.tglClose) : '',
       umur        : Number(form.umur) || 0,
+      terminId    : form.terminId,
+      terminName  : form.terminName,
+      baseNominal : parseNominalInput(form.baseNominal || form.nominal),
     };
 
     if (editIndex !== null) {
@@ -196,9 +238,15 @@ export default function InputDataPage() {
   }
 
   // ── Filter & display ────────────────────────────────────────────
+  const dynamicRows = tagihanRows.map((r, i) => ({
+    ...r,
+    _originalIndex: i,
+    umur: r.status === 'OPEN' ? String(hitungUmur(r.jatuhTempo)) : '0'
+  }));
+
   const displayed = filterCust
-    ? tagihanRows.filter(r => r.customerId === filterCust)
-    : tagihanRows;
+    ? dynamicRows.filter(r => r.customerId === filterCust)
+    : dynamicRows;
 
   const totalSemua = displayed.reduce((s, r) => s + r.nominal, 0);
   const totalOpen  = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
@@ -302,17 +350,19 @@ export default function InputDataPage() {
                   <th>No Invoice</th>
                   <th>Tgl Invoice</th>
                   <th>Jatuh Tempo</th>
-                  <th style={{ textAlign: 'right' }}>Nominal (Rp)</th>
-                  <th>Status</th>
+                    <th style={{ width: 100, textAlign: 'right' }}>Sisa Tagihan</th>
+                    <th style={{ width: 100 }}>Termin</th>
+                    <th style={{ width: 80, textAlign: 'center' }}>Status</th>
                   <th>Tgl Close</th>
-                  <th style={{ width: 46 }}>Umur</th>
+                  <th style={{ width: 80 }}>Jatuh Tempo</th>
                   <th style={{ width: 100 }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {displayed.map((r, i) => {
-                  // Cari index asli di tagihanRows (penting untuk edit/delete saat filter aktif)
-                  const realIndex = tagihanRows.indexOf(r);
+                  // Gunakan index asli dari _originalIndex
+                  const realIndex = r._originalIndex;
+                  const isDanger = r.status === 'OPEN' && Number(r.umur) <= 14;
                   return (
                     <tr key={realIndex}>
                       <td className="center-cell">{r.no}</td>
@@ -322,13 +372,14 @@ export default function InputDataPage() {
                       <td className="center-cell">{r.tglInvoice}</td>
                       <td className="center-cell">{r.jatuhTempo}</td>
                       <td className="nominal-cell">{formatRp(r.nominal)}</td>
+                      <td>{r.terminName ? r.terminName.replace(/Termin\s+/i, '') : '-'}</td>
                       <td>
                         <span className={r.status === 'OPEN' ? 'status-open' : 'status-close'}>
-                          {r.status}
+                          {r.status === 'LUNAS' ? 'CLOSE' : r.status}
                         </span>
                       </td>
                       <td className="center-cell">{r.tglClose || '—'}</td>
-                      <td className="center-cell">{r.umur}</td>
+                      <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>{r.umur}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
                           <button
@@ -465,23 +516,45 @@ export default function InputDataPage() {
                 onChange={handleChange}
               />
             </div>
-          </div>
-
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label>Nominal (Rp) <span className="req">*</span></label>
-              <input
-                className="form-control"
-                placeholder="Contoh: 10.092.422"
-                value={nominalDisplay}
-                onChange={handleNominalChange}
-                inputMode="numeric"
-              />
             </div>
-            <div className="form-group">
-              <label>Status</label>
-              <select name="status" className="form-control" value={form.status} onChange={handleChange}>
-                <option value="OPEN">OPEN</option>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Total Tagihan (Rp) <span className="req">*</span></label>
+                <input
+                  className="form-control"
+                  placeholder="Contoh: 10.092.422"
+                  value={nominalDisplay}
+                  onChange={handleNominalChange}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="form-group">
+                <label>Termin</label>
+                <select name="terminId" className="form-control" value={form.terminId || ''} onChange={handleTerminChange}>
+                  <option value="">-- Full (100%) --</option>
+                  {termins && termins.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.percent}%)</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            {form.terminId && (
+              <div style={{ padding: '12px 16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, marginBottom: 20, color: '#166534', fontSize: 13 }}>
+                <strong>Nominal Akhir (Setelah dipotong {form.terminName}):</strong><br/>
+                <span style={{ fontSize: 18, fontWeight: 700 }}>Rp {formatRp(form.nominal)}</span>
+              </div>
+            )}
+
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Status</label>
+                <select
+                  name="status"
+                  className="form-control"
+                  value={form.status}
+                  onChange={handleChange}
+                ><option value="OPEN">OPEN</option>
                 <option value="CLOSE">CLOSE</option>
               </select>
             </div>

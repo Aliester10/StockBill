@@ -197,6 +197,8 @@ body {
 }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: #F8FAFC; }
+.data-table tr.row-danger td { background: #FEE2E2 !important; }
+.data-table tr.row-danger:hover td { background: #FECACA !important; }
 .nominal-cell { text-align: right; font-variant-numeric: tabular-nums; }
 .center-cell  { text-align: center; }
 .empty-state  { text-align: center; color: var(--text-sub); padding: 32px !important; font-style: italic; }

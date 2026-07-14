@@ -20,7 +20,7 @@ function hitungUmur(jatuhTempoStr) {
     const [d, m, y] = jatuhTempoStr.split('/');
     const tgl = new Date(Number(y), Number(m) - 1, Number(d));
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    return Math.max(0, Math.floor((today - tgl) / 86400000));
+    return Math.floor((tgl - today) / 86400000);
   } catch { return 0; }
 }
 function htmlDateToDisplay(val) {
@@ -39,18 +39,18 @@ const emptyForm = () => ({
   customerId: '', namaCustomer: '', noInvoice: '',
   tglInvoice: '', jatuhTempo: '', nominal: '',
   status: 'OPEN', tglClose: '', umur: '0',
+  terminId: '', terminName: '', baseNominal: ''
 });
 
 export default function TagihanPage() {
   const {
     tagihanRows, addTagihanRow, updateTagihanRow,
     deleteTagihanRow, clearAllTagihan,
-    mergeUpload, customers, company, showToast,
+    mergeUpload, customers, company, showToast, termins
   } = useApp();
 
   const fileInputRef                       = useRef(null);
   const [uploading,      setUploading]     = useState(false);
-  const [filterCust,     setFilterCust]    = useState('');
   const [confirmClear,   setConfirmClear]  = useState(false);
   const [showForm,       setShowForm]      = useState(false);
   const [form,           setForm]          = useState(emptyForm());
@@ -58,6 +58,7 @@ export default function TagihanPage() {
   const [nominalDisplay, setNominalDisplay]= useState('');
   const [selCustomer,    setSelCustomer]   = useState('');
   const [selStatus,      setSelStatus]     = useState('ALL');
+  const [selWaktu,       setSelWaktu]      = useState('ALL');
   const [genXls,         setGenXls]        = useState(false);
   const [genPdf,         setGenPdf]        = useState(false);
 
@@ -115,11 +116,50 @@ export default function TagihanPage() {
     const m = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
     setForm(p => ({ ...p, namaCustomer: name, customerId: m ? m.id : p.customerId }));
   }
-  function handleNominalChange(e) {
-    const raw = e.target.value.replace(/[^0-9]/g, '');
-    setNominalDisplay(raw ? Number(raw).toLocaleString('id-ID') : '');
-    setForm(p => ({ ...p, nominal: raw }));
+
+  function handleTerminChange(e) {
+    const tId = e.target.value;
+    const tObj = termins.find(t => t.id === tId);
+    let newNominal = form.baseNominal;
+    let tName = '';
+    
+    if (tObj && form.baseNominal) {
+      const bn = Number(form.baseNominal);
+      newNominal = String(Math.round(bn * (tObj.percent / 100)));
+      tName = `${tObj.name.replace(/Termin\s+/i, '')} (${tObj.percent}%)`;
+    }
+    
+    setForm(prev => ({
+      ...prev,
+      terminId: tId,
+      terminName: tName,
+      nominal: newNominal
+    }));
+    
+    if (newNominal) {
+      setNominalDisplay(formatRp(newNominal));
+    } else {
+      setNominalDisplay('');
+    }
   }
+
+  function handleNominalChange(e) {
+    let val = e.target.value.replace(/[^0-9]/g, '');
+    setNominalDisplay(formatRp(val));
+    
+    let finalNominal = val;
+    let tName = form.terminName;
+    
+    if (form.terminId) {
+      const tObj = termins.find(t => t.id === form.terminId);
+      if (tObj) {
+        finalNominal = String(Math.round(Number(val) * (tObj.percent / 100)));
+      }
+    }
+    
+    setForm(p => ({ ...p, baseNominal: val, nominal: finalNominal }));
+  }
+
   function openAdd() { setForm(emptyForm()); setNominalDisplay(''); setEditIndex(null); setShowForm(true); }
   function openEdit(idx) {
     const r = tagihanRows[idx];
@@ -128,8 +168,9 @@ export default function TagihanPage() {
       tglInvoice: displayDateToHtml(r.tglInvoice), jatuhTempo: displayDateToHtml(r.jatuhTempo),
       nominal: String(r.nominal), status: r.status,
       tglClose: displayDateToHtml(r.tglClose), umur: String(r.umur),
+      terminId: r.terminId || '', terminName: r.terminName || '', baseNominal: r.baseNominal || String(r.nominal)
     });
-    setNominalDisplay(r.nominal ? Number(r.nominal).toLocaleString('id-ID') : '');
+    setNominalDisplay(r.baseNominal ? Number(r.baseNominal).toLocaleString('id-ID') : (r.nominal ? Number(r.nominal).toLocaleString('id-ID') : ''));
     setEditIndex(idx); setShowForm(true);
   }
   function handleSave() {
@@ -146,6 +187,7 @@ export default function TagihanPage() {
       nominal: parseNominalInput(form.nominal), status: form.status,
       tglClose: form.status === 'CLOSE' ? htmlDateToDisplay(form.tglClose) : '',
       umur: Number(form.umur) || 0,
+      terminId: form.terminId, terminName: form.terminName, baseNominal: parseNominalInput(form.baseNominal || form.nominal)
     };
     if (editIndex !== null) { updateTagihanRow(editIndex, row); showToast('Data diupdate!', 'success'); }
     else                    { addTagihanRow(row);               showToast('Data disimpan!', 'success'); }
@@ -154,14 +196,26 @@ export default function TagihanPage() {
 
   // ── Generate ─────────────────────────────────────────────────
   function getPayload() {
-    if (!selCustomer) { showToast('Pilih customer terlebih dahulu.', 'error'); return null; }
-    const custRows = tagihanRows.filter(r => r.customerId === selCustomer);
-    if (!custRows.length) { showToast('Tidak ada data untuk customer ini.', 'error'); return null; }
-    const cust = { id: custRows[0].customerId, name: custRows[0].namaCustomer };
-    let rows = custRows;
-    if (selStatus === 'OPEN')  rows = custRows.filter(r => r.status === 'OPEN');
-    if (selStatus === 'CLOSE') rows = custRows.filter(r => r.status === 'CLOSE');
-    if (!rows.length) { showToast(`Tidak ada tagihan status "${selStatus}".`, 'error'); return null; }
+    const dynamicRows = tagihanRows.map((r, i) => ({
+      ...r,
+      _originalIndex: i,
+      umur: r.status === 'OPEN' ? String(hitungUmur(r.jatuhTempo)) : '0'
+    }));
+    let rows = dynamicRows;
+    let cust = { id: '-', name: 'Semua Customer' };
+    
+    if (selCustomer) {
+      rows = rows.filter(r => r.customerId === selCustomer);
+      if (rows.length > 0) {
+        cust = { id: rows[0].customerId, name: rows[0].namaCustomer };
+      }
+    }
+    
+    if (selStatus === 'OPEN')  rows = rows.filter(r => r.status === 'OPEN');
+    if (selStatus === 'CLOSE') rows = rows.filter(r => r.status === 'CLOSE');
+    if (selWaktu === 'OVERDUE') rows = rows.filter(r => r.status === 'OPEN' && Number(r.umur) <= 14);
+    
+    if (!rows.length) { showToast(`Tidak ada tagihan yang sesuai filter.`, 'error'); return null; }
     return { cust, rows };
   }
   async function handleGenExcel() {
@@ -176,10 +230,21 @@ export default function TagihanPage() {
   }
 
   // ── Derived ──────────────────────────────────────────────────
-  const displayed    = filterCust ? tagihanRows.filter(r => r.customerId === filterCust) : tagihanRows;
+  const dynamicRows = tagihanRows.map((r, i) => ({
+    ...r,
+    _originalIndex: i,
+    umur: r.status === 'OPEN' ? String(hitungUmur(r.jatuhTempo)) : '0'
+  }));
+  
+  let displayed = dynamicRows;
+  if (selCustomer) displayed = displayed.filter(r => r.customerId === selCustomer);
+  if (selStatus === 'OPEN') displayed = displayed.filter(r => r.status === 'OPEN');
+  if (selStatus === 'CLOSE') displayed = displayed.filter(r => r.status === 'CLOSE');
+  if (selWaktu === 'OVERDUE') displayed = displayed.filter(r => r.status === 'OPEN' && Number(r.umur) <= 14);
+
   const totalSemua   = displayed.reduce((s, r) => s + r.nominal, 0);
   const totalOpen    = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
-  const previewRows  = selCustomer ? tagihanRows.filter(r => r.customerId === selCustomer) : [];
+  const previewRows  = displayed.filter(r => selCustomer && r.customerId === selCustomer);
   const previewOpen  = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
   const previewClose = previewRows.filter(r => r.status === 'CLOSE').reduce((s, r) => s + r.nominal, 0);
   const matchedCust  = customers.find(c => c.id === form.customerId);
@@ -187,7 +252,6 @@ export default function TagihanPage() {
   // ── Render ───────────────────────────────────────────────────
   return (
     <>
-      {/* ══ SECTION 1: GENERATE SOA (teratas) ════════════════════ */}
       <div className="card">
         <div className="card-header">
           <h2>Generate Statement of Account</h2>
@@ -227,94 +291,45 @@ export default function TagihanPage() {
                     <option value="CLOSE">Close</option>
                   </select>
                 </div>
+                <div className="form-group">
+                  <label>Kondisi Jatuh Tempo</label>
+                  <select className="form-control" value={selWaktu} onChange={e => setSelWaktu(e.target.value)}>
+                    <option value="ALL">Semua Tagihan</option>
+                    <option value="OVERDUE">Khusus Jatuh Tempo (≤ 14 Hari)</option>
+                  </select>
+                </div>
                 <div className="generate-btn-group">
-                  <button className="btn btn-excel" onClick={handleGenExcel} disabled={genXls || genPdf || !selCustomer}>
-                    {genXls ? <><span className="spinner spinner-dark" /> Memproses…</> : <><IcoExcel /> Excel</>}
+                  <button className="btn btn-excel" onClick={handleGenExcel} disabled={genXls || genPdf || displayed.length === 0}>
+                    {genXls ? 'Memproses…' : 'Excel'}
                   </button>
-                  <button className="btn btn-pdf" onClick={handleGenPDF} disabled={genPdf || genXls || !selCustomer}>
-                    {genPdf ? <><span className="spinner" /> Memproses…</> : <><IcoPDF /> PDF</>}
+                  <button className="btn btn-pdf" onClick={handleGenPDF} disabled={genPdf || genXls || displayed.length === 0}>
+                    {genPdf ? 'Memproses…' : 'PDF'}
                   </button>
                 </div>
               </div>
-              {selCustomer && previewRows.length > 0 && (
-                <SoaPreview
-                  cust={customers.find(c => c.id === selCustomer)}
-                  rows={previewRows} selStatus={selStatus}
-                  previewOpen={previewOpen} previewClose={previewClose}
-                />
-              )}
             </>
           )}
         </div>
       </div>
 
-      {/* ══ SECTION 2: DATA TAGIHAN ══════════════════════════════ */}
       <div className="card">
         <div className="card-header">
           <h2>Data Tagihan</h2>
-          {tagihanRows.length > 0 && <span className="badge">{tagihanRows.length} baris</span>}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {customers.length > 0 && (
-              <select className="form-control" style={{ width: 190, padding: '6px 10px' }}
-                value={filterCust} onChange={e => setFilterCust(e.target.value)}>
-                <option value="">Semua Customer</option>
-                {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            )}
             {tagihanRows.length > 0 && (
               <button className="btn btn-sm btn-danger" onClick={() => setConfirmClear(true)}>Hapus Semua</button>
             )}
-            <button className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-              title="Import dari Excel. Data yang No Invoice-nya sudah ada akan dilewati otomatis.">
-              {uploading ? <><span className="spinner spinner-dark" /> Mengimport…</> : (
-                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg> Import Excel</>
-              )}
+            <button className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+              {uploading ? 'Mengimport…' : 'Import Excel'}
             </button>
             <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleFileImport} />
             <button className="btn btn-primary btn-sm" onClick={openAdd}>+ Tambah Data</button>
           </div>
         </div>
 
-        {tagihanRows.length > 0 && (
-          <div className="summary-bar">
-            {[
-              ['Total Invoice', displayed.length, null],
-              ['Total Nominal', 'Rp ' + formatRp(totalSemua), 'var(--dark-blue)'],
-              ['Total Open',    'Rp ' + formatRp(totalOpen),  'var(--dark-red)'],
-              ['Total Close',   'Rp ' + formatRp(totalSemua - totalOpen), 'var(--success)'],
-            ].map(([lbl, val, color], i, arr) => (
-              <span key={lbl} style={{ display: 'contents' }}>
-                <div className="summary-item">
-                  <span className="summary-label">{lbl}</span>
-                  <span className="summary-value" style={color ? { color } : {}}>{val}</span>
-                </div>
-                {i < arr.length - 1 && <div className="summary-divider" />}
-              </span>
-            ))}
-          </div>
-        )}
-
         {tagihanRows.length === 0 ? (
           <div className="empty-full">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.3">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
-            </svg>
             <p>Belum ada data tagihan.</p>
-            <p style={{ fontSize: 13, marginTop: 4 }}>
-              Klik <strong>+ Tambah Data</strong> untuk input manual,
-              atau <strong>Import Excel</strong> untuk upload dari file.
-            </p>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                {uploading ? 'Mengimport…' : 'Import Excel'}
-              </button>
-              <button className="btn btn-primary" onClick={openAdd}>+ Tambah Data</button>
-            </div>
           </div>
         ) : (
           <div className="table-wrapper">
@@ -324,15 +339,17 @@ export default function TagihanPage() {
                   <th style={{ width: 40 }}>No</th>
                   <th>Customer ID</th><th>Nama Customer</th>
                   <th>No Invoice</th><th>Tgl Invoice</th><th>Tgl Jatuh Tempo</th>
-                  <th style={{ textAlign: 'right' }}>Nominal (Rp)</th>
-                  <th>Status</th><th>Tgl Close</th>
+                  <th style={{ width: 100, textAlign: 'right' }}>Sisa Tagihan</th>
+                  <th style={{ width: 100 }}>Termin</th>
+                  <th style={{ width: 80, textAlign: 'center' }}>Status</th><th>Tgl Close</th>
                   <th style={{ width: 80 }}>Jatuh Tempo</th>
                   <th style={{ width: 80 }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {displayed.map(r => {
-                  const idx = tagihanRows.indexOf(r);
+                  const idx = r._originalIndex;
+                  const isDanger = r.status === 'OPEN' && Number(r.umur) <= 14;
                   return (
                     <tr key={idx}>
                       <td className="center-cell">{r.no}</td>
@@ -342,9 +359,10 @@ export default function TagihanPage() {
                       <td className="center-cell">{r.tglInvoice}</td>
                       <td className="center-cell">{r.jatuhTempo}</td>
                       <td className="nominal-cell">{formatRp(r.nominal)}</td>
-                      <td><span className={r.status === 'OPEN' ? 'status-open' : 'status-close'}>{r.status}</span></td>
+                      <td style={{ fontSize: 13, color: '#64748B' }}>{r.terminName ? r.terminName.replace(/Termin\s+/i, '') : '-'}</td>
+                      <td><span className={r.status === 'OPEN' ? 'status-open' : 'status-close'}>{r.status === 'LUNAS' ? 'CLOSE' : r.status}</span></td>
                       <td className="center-cell">{r.tglClose || '—'}</td>
-                      <td className="center-cell">{r.umur}</td>
+                      <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>{r.umur}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
                           <button className="btn btn-sm btn-secondary" onClick={() => openEdit(idx)} title="Edit">✏️</button>
@@ -428,10 +446,29 @@ export default function TagihanPage() {
           </div>
           <div className="form-grid-2">
             <div className="form-group">
-              <label>Nominal (Rp) <span className="req">*</span></label>
+              <label>Total Tagihan (Rp) <span className="req">*</span></label>
               <input className="form-control" placeholder="Contoh: 10.092.422"
                 value={nominalDisplay} onChange={handleNominalChange} inputMode="numeric" />
             </div>
+            <div className="form-group">
+              <label>Termin</label>
+              <select name="terminId" className="form-control" value={form.terminId || ''} onChange={handleTerminChange}>
+                <option value="">-- Full (100%) --</option>
+                {termins && termins.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.percent}%)</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {form.terminId && (
+            <div style={{ padding: '12px 16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, marginBottom: 20, color: '#166534', fontSize: 13 }}>
+              <strong>Nominal Akhir (Setelah dipotong {form.terminName}):</strong><br/>
+              <span style={{ fontSize: 18, fontWeight: 700 }}>Rp {formatRp(form.nominal)}</span>
+            </div>
+          )}
+
+          <div className="form-grid-2">
             <div className="form-group">
               <label>Status</label>
               <select name="status" className="form-control" value={form.status} onChange={handleChange}>
