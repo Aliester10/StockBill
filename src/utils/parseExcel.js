@@ -48,8 +48,7 @@ export function parseExcelFile(file) {
             tglClose    : excelDateToStr(r[8]),
             umur        : parseUmur(r[9]),
             terminId    : '',
-            terminName  : '',
-            baseNominal : parseNominal(r[6]),
+            terminName  : ''
           });
         }
         resolve(result);

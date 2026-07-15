@@ -43,6 +43,18 @@ export function generatePDF(company, cust, rows, statusFilter) {
   // ═══════════════════════════════════════════════════════════════
   // JUDUL
   // ═══════════════════════════════════════════════════════════════
+  if (company.logo) {
+    try {
+      const imgProps = doc.getImageProperties(company.logo);
+      const imgHeight = 16;
+      const imgWidth = (imgProps.width * imgHeight) / imgProps.height;
+      doc.addImage(company.logo, (pageW - imgWidth) / 2, y, imgWidth, imgHeight);
+      y += imgHeight + 6;
+    } catch (e) {
+      console.error('Gagal memuat logo PDF', e);
+    }
+  }
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(...TEXT_DARK);
@@ -129,7 +141,7 @@ export function generatePDF(company, cust, rows, statusFilter) {
     r.noInvoice,
     r.tglInvoice,
     r.jatuhTempo,
-    r.terminName ? r.terminName.replace(/Termin\s+/i, '') : '-',
+    r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-',
     formatRp(r.nominal),
     r.umur,
   ]);
@@ -215,7 +227,7 @@ export function generatePDF(company, cust, rows, statusFilter) {
 
   const labelTotal = statusFilter === 'CLOSE'
     ? 'TOTAL TAGIHAN CLOSE'
-    : 'TOTAL TAGIHAN BELUM CLOSE';
+    : 'TOTAL TAGIHAN';
 
   // Lebar area label = kolom No + No Invoice + Tgl Invoice + Jatuh Tempo + Termin
   const labelAreaW = COL_W[0] + COL_W[1] + COL_W[2] + COL_W[3] + COL_W[4]; 

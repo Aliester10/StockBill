@@ -63,14 +63,34 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   ];
 
   // ═══════════════════════════════════════════════════════════════
-  // BARIS 1 — Judul STATEMENT OF ACCOUNT
+  // BARIS 1 — Judul STATEMENT OF ACCOUNT & LOGO
   // ═══════════════════════════════════════════════════════════════
-  ws.getRow(1).height = 40;
+  let hasLogo = false;
+  if (company.logo) {
+    try {
+      const match = company.logo.match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/);
+      if (match) {
+        let ext = match[1];
+        if (ext === 'jpg') ext = 'jpeg';
+        const imageId = wb.addImage({
+          base64: company.logo,
+          extension: ext,
+        });
+        ws.addImage(imageId, {
+          tl: { col: 4, row: 0 }, // E1 (centerish)
+          ext: { width: 150, height: 50 },
+        });
+        hasLogo = true;
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  ws.getRow(1).height = hasLogo ? 80 : 40;
   ws.mergeCells('A1:I1');
   const r1 = ws.getCell('A1');
   r1.value     = 'STATEMENT OF ACCOUNT';
   r1.font      = { bold: true, size: 16, name: 'Calibri' };
-  r1.alignment = AC;
+  r1.alignment = { horizontal: 'center', vertical: hasLogo ? 'bottom' : 'middle' };
 
   // ═══════════════════════════════════════════════════════════════
   // BARIS 2 — Info perusahaan
@@ -187,7 +207,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     setDataCell(ws, rowNum, 'E', r.jatuhTempo, bg, { ...AC });
 
     // Kolom F: Termin
-    const tNameFormat = r.terminName ? r.terminName.replace(/Termin\s+/i, '') : '-';
+    const tNameFormat = r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-';
     setDataCell(ws, rowNum, 'F', tNameFormat, bg, { ...AC });
 
     // Kolom G: Nominal
@@ -218,7 +238,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   // BARIS TOTAL TAGIHAN (simetris B:G penuh seperti tabel)
   // ═══════════════════════════════════════════════════════════════
   ws.getRow(TOTAL_ROW).height = 30;
-  const labelTotal = statusFilter === 'CLOSE' ? 'TOTAL TAGIHAN CLOSE' : 'TOTAL TAGIHAN BELUM CLOSE';
+  const labelTotal = statusFilter === 'CLOSE' ? 'TOTAL TAGIHAN CLOSE' : 'TOTAL TAGIHAN';
 
   ws.mergeCells(`B${TOTAL_ROW}:F${TOTAL_ROW}`);
   const cellTotLabel = ws.getCell(`B${TOTAL_ROW}`);

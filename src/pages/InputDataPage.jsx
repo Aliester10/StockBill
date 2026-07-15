@@ -15,6 +15,7 @@ const emptyForm = () => ({
   umur        : '0',
   terminId    : '',
   terminName  : '',
+  terminPercent: '',
   baseNominal : ''
 });
 
@@ -66,6 +67,7 @@ export default function InputDataPage() {
   const [editIndex, setEditIndex] = useState(null); // null = add mode
   const [showForm,  setShowForm]  = useState(false);
   const [nominalDisplay, setNominalDisplay] = useState('');
+  const [baseNominalDisplay, setBaseNominalDisplay] = useState('');
   const [filterCust, setFilterCust] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -128,49 +130,63 @@ export default function InputDataPage() {
   function handleTerminChange(e) {
     const tId = e.target.value;
     const tObj = termins.find(t => t.id === tId);
-    let newNominal = form.baseNominal;
     let tName = '';
+    let tPercent = '';
+    let newNominal = form.nominal;
     
-    if (tObj && form.baseNominal) {
-      const bn = Number(form.baseNominal);
-      newNominal = String(Math.round(bn * (tObj.percent / 100)));
-      tName = `${tObj.name.replace(/Termin\s+/i, '')} (${tObj.percent}%)`;
+    if (tObj) {
+      tName = tObj.name;
+      tPercent = tObj.percent || 0;
+      if (form.baseNominal && tPercent > 0) {
+        newNominal = String(Math.round(Number(form.baseNominal) * (Number(tPercent) / 100)));
+      }
     }
     
     setForm(prev => ({
       ...prev,
       terminId: tId,
       terminName: tName,
+      terminPercent: tPercent,
       nominal: newNominal
     }));
     
-    if (newNominal) {
-      setNominalDisplay(formatRp(newNominal));
-    } else {
-      setNominalDisplay('');
+    if (newNominal) setNominalDisplay(formatRp(newNominal));
+  }
+
+  function handlePercentChange(e) {
+    const p = e.target.value;
+    let newNominal = form.nominal;
+    if (form.baseNominal && p !== '') {
+      newNominal = String(Math.round(Number(form.baseNominal) * (Number(p) / 100)));
     }
+    setForm(prev => ({ ...prev, terminPercent: p, nominal: newNominal }));
+    if (newNominal) setNominalDisplay(formatRp(newNominal));
+  }
+
+  function handleBaseNominalChange(e) {
+    let val = e.target.value.replace(/[^0-9]/g, '');
+    setBaseNominalDisplay(formatRp(val));
+    
+    let newNominal = form.nominal;
+    if (form.terminPercent && form.terminPercent !== '') {
+       newNominal = String(Math.round(Number(val) * (Number(form.terminPercent) / 100)));
+    } else {
+       newNominal = val;
+    }
+    setForm(prev => ({ ...prev, baseNominal: val, nominal: newNominal }));
+    setNominalDisplay(formatRp(newNominal));
   }
 
   function handleNominalChange(e) {
     let val = e.target.value.replace(/[^0-9]/g, '');
     setNominalDisplay(formatRp(val));
-    
-    let finalNominal = val;
-    let tName = form.terminName;
-    
-    if (form.terminId) {
-      const tObj = termins.find(t => t.id === form.terminId);
-      if (tObj) {
-        finalNominal = String(Math.round(Number(val) * (tObj.percent / 100)));
-      }
-    }
-    
-    setForm(prev => ({ ...prev, baseNominal: val, nominal: finalNominal }));
+    setForm(prev => ({ ...prev, nominal: val }));
   }
 
   function openAdd() {
     setForm(emptyForm());
     setNominalDisplay('');
+    setBaseNominalDisplay('');
     setEditIndex(null);
     setShowForm(true);
   }
@@ -189,9 +205,11 @@ export default function InputDataPage() {
       umur        : String(r.umur),
       terminId    : r.terminId || '',
       terminName  : r.terminName || '',
+      terminPercent: r.terminPercent || '',
       baseNominal : r.baseNominal || String(r.nominal),
     });
-    setNominalDisplay(r.baseNominal ? Number(r.baseNominal).toLocaleString('id-ID') : (r.nominal ? Number(r.nominal).toLocaleString('id-ID') : ''));
+    setBaseNominalDisplay(r.baseNominal ? Number(r.baseNominal).toLocaleString('id-ID') : (r.nominal ? Number(r.nominal).toLocaleString('id-ID') : ''));
+    setNominalDisplay(r.nominal ? Number(r.nominal).toLocaleString('id-ID') : '');
     setEditIndex(index);
     setShowForm(true);
   }
@@ -217,6 +235,7 @@ export default function InputDataPage() {
       umur        : Number(form.umur) || 0,
       terminId    : form.terminId,
       terminName  : form.terminName,
+      terminPercent: form.terminPercent || 0,
       baseNominal : parseNominalInput(form.baseNominal || form.nominal),
     };
 
@@ -230,6 +249,7 @@ export default function InputDataPage() {
     setShowForm(false);
     setForm(emptyForm());
     setNominalDisplay('');
+    setBaseNominalDisplay('');
   }
 
   function handleDelete(index) {
@@ -372,7 +392,7 @@ export default function InputDataPage() {
                       <td className="center-cell">{r.tglInvoice}</td>
                       <td className="center-cell">{r.jatuhTempo}</td>
                       <td className="nominal-cell">{formatRp(r.nominal)}</td>
-                      <td>{r.terminName ? r.terminName.replace(/Termin\s+/i, '') : '-'}</td>
+                      <td>{r.terminName || '-'}</td>
                       <td>
                         <span className={r.status === 'OPEN' ? 'status-open' : 'status-close'}>
                           {r.status === 'LUNAS' ? 'CLOSE' : r.status}
@@ -523,26 +543,47 @@ export default function InputDataPage() {
                 <input
                   className="form-control"
                   placeholder="Contoh: 10.092.422"
-                  value={nominalDisplay}
-                  onChange={handleNominalChange}
+                  value={baseNominalDisplay}
+                  onChange={handleBaseNominalChange}
                   inputMode="numeric"
                 />
               </div>
               <div className="form-group">
                 <label>Termin</label>
                 <select name="terminId" className="form-control" value={form.terminId || ''} onChange={handleTerminChange}>
-                  <option value="">-- Full (100%) --</option>
+                  <option value="">-- Tidak ada --</option>
                   {termins && termins.map(t => (
-                    <option key={t.id} value={t.id}>{t.name} ({t.percent}%)</option>
+                    <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
               </div>
             </div>
-            
+
             {form.terminId && (
-              <div style={{ padding: '12px 16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, marginBottom: 20, color: '#166534', fontSize: 13 }}>
-                <strong>Nominal Akhir (Setelah dipotong {form.terminName}):</strong><br/>
-                <span style={{ fontSize: 18, fontWeight: 700 }}>Rp {formatRp(form.nominal)}</span>
+              <div className="form-grid-2" style={{ padding: '12px 16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, marginBottom: 20 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Persen (%) Termin</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={form.terminPercent}
+                      onChange={handlePercentChange}
+                      placeholder="0"
+                    />
+                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>%</span>
+                  </div>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Nominal Sisa Tagihan (Rp) <span className="req">*</span></label>
+                  <input
+                    className="form-control"
+                    value={nominalDisplay}
+                    onChange={handleNominalChange}
+                    inputMode="numeric"
+                    style={{ fontWeight: 600, color: 'var(--dark-blue)' }}
+                  />
+                </div>
               </div>
             )}
 

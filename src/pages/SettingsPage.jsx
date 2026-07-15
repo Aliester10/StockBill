@@ -9,6 +9,7 @@ export default function SettingsPage() {
   const [name,    setName]    = useState(company.name    || '');
   const [address, setAddress] = useState(company.address || '');
   const [telp,    setTelp]    = useState(company.telp    || '');
+  const [logo,    setLogo]    = useState(company.logo    || '');
 
   // Termin State (local copy for editing)
   const [localTermins, setLocalTermins] = useState(termins);
@@ -18,6 +19,7 @@ export default function SettingsPage() {
     setName(company.name    || '');
     setAddress(company.address || '');
     setTelp(company.telp    || '');
+    setLogo(company.logo    || '');
     setLocalTermins(termins);
   }, [company, termins]);
 
@@ -27,7 +29,7 @@ export default function SettingsPage() {
     // Validasi termins
     const validTermins = localTermins.filter(t => t.name.trim() !== '');
     
-    setCompany({ name: name.trim(), address: address.trim(), telp: telp.trim() });
+    setCompany({ name: name.trim(), address: address.trim(), telp: telp.trim(), logo });
     setTermins(validTermins);
     showToast('Pengaturan berhasil disimpan!', 'success');
   }
@@ -82,15 +84,42 @@ export default function SettingsPage() {
           />
         </div>
 
+        <div className="form-group">
+          <label>Logo Perusahaan (Opsional)</label>
+          <input
+            type="file"
+            className="form-control"
+            accept="image/*"
+            onChange={e => {
+              const file = e.target.files[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => setLogo(reader.result);
+                reader.readAsDataURL(file);
+              } else {
+                setLogo('');
+              }
+            }}
+          />
+          {logo && (
+            <div style={{ marginTop: 8 }}>
+              <button className="btn btn-sm btn-danger" onClick={() => setLogo('')}>Hapus Logo</button>
+            </div>
+          )}
+        </div>
+
         {/* Preview header */}
         <div style={{
           padding: '14px 16px', background: '#F8FAFC',
           border: '1px solid var(--border)', borderRadius: 8,
           fontSize: 13, color: 'var(--text-sub)'
         }}>
-          <div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--dark-blue)' }}>Preview Header:</div>
-          <div style={{ fontWeight: 700, fontSize: 15, textAlign: 'center' }}>STATEMENT OF ACCOUNT</div>
-          <div style={{ textAlign: 'center', marginTop: 2 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--dark-blue)' }}>Preview Header:</div>
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            {logo && <img src={logo} alt="Logo" style={{ maxHeight: 60, objectFit: 'contain', marginBottom: 8 }} />}
+            <div style={{ fontWeight: 700, fontSize: 15 }}>STATEMENT OF ACCOUNT</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
             {name || 'PT XYZ'}  |  {address || 'Alamat'}  |  Telp {telp || '-'}
           </div>
         </div>
@@ -108,7 +137,7 @@ export default function SettingsPage() {
     <div className="card" style={{ maxWidth: 520, marginTop: 24 }}>
       <div className="card-header">
         <h2>Pengaturan Termin</h2>
-        <span className="subtitle">Persentase potongan otomatis saat input tagihan.</span>
+        <span className="subtitle">Persentase bawaan saat input tagihan.</span>
       </div>
       <div className="card-body">
         {localTermins.length === 0 ? (
@@ -122,13 +151,13 @@ export default function SettingsPage() {
                   style={{ flex: 2 }}
                   value={t.name}
                   onChange={e => updateTermin(i, 'name', e.target.value)}
-                  placeholder="Nama Termin"
+                  placeholder="Nama Termin (misal: Termin 1)"
                 />
                 <div style={{ position: 'relative', flex: 1 }}>
                   <input 
                     type="number"
                     className="form-control" 
-                    value={t.percent}
+                    value={t.percent || 0}
                     onChange={e => updateTermin(i, 'percent', Number(e.target.value))}
                     placeholder="Persentase"
                   />

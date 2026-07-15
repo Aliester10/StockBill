@@ -27,5 +27,6 @@ export function terbilang(angka) {
   angka = Math.round(Math.abs(angka));
   if (angka === 0) return 'Nol';
   const hasil = convert(angka);
-  return hasil.charAt(0).toUpperCase() + hasil.slice(1) + ' Rupiah';
+  const titleCaseHasil = hasil.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return titleCaseHasil + ' Rupiah';
 }
