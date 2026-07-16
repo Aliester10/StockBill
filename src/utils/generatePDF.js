@@ -126,7 +126,7 @@ export function generatePDF(company, cust, rows, statusFilter, exportColumns = n
 
   const dynamicColStyles = {};
   activeCols.forEach((c, i) => {
-    dynamicColStyles[i] = { cellWidth: c.width, halign: c.align || 'center' };
+    dynamicColStyles[i] = { halign: c.align || 'center' };
   });
 
   const hasNominal = cols.nominal;
