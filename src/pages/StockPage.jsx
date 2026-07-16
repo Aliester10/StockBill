@@ -440,8 +440,8 @@ const DetailView = ({ productName, data, onBack }) => {
 };
 
 const PoHistoryCard = ({ po, formatNumber }) => {
-  // By default, if status is GR, we collapse it, else open
-  const [isExpanded, setIsExpanded] = useState(po.status !== 'GR');
+  // By default, collapse all history. Only show/print if explicitly clicked.
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div className="po-card">
