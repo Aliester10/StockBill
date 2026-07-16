@@ -48,7 +48,30 @@ function fillSolid(argb) {
  * Kolom: A=No  B=No Invoice  C=Tgl Invoice  D=Jatuh Tempo  E=Nominal(Rp)  F=Umur(hari)
  * Tabel mulai B (agar ada margin kiri seperti referensi)
  */
-export async function generateSOA(company, cust, rows, statusFilter) {
+export async function generateSOA(company, cust, rows, statusFilter, exportColumns = null) {
+  const cols = exportColumns || { no: true, customerId: true, namaCustomer: true, noInvoice: true, tglInvoice: true, jatuhTempo: true, nominal: true, termin1: true, termin2: true, termin3: true, status: true, tglClose: true, umur: true };
+
+  const ALL_DEFS = [
+    { key: 'no', label: 'No', width: 8, align: AC, render: (r, i) => i + 1 },
+    { key: 'customerId', label: 'Customer ID', width: 15, align: AC, render: r => r.customerId },
+    { key: 'namaCustomer', label: 'Nama Customer', width: 25, align: AL, render: r => r.namaCustomer },
+    { key: 'noInvoice', label: 'No Invoice', width: 14, align: AC, render: r => r.noInvoice },
+    { key: 'tglInvoice', label: 'Tgl Invoice', width: 13, align: AC, render: r => r.tglInvoice },
+    { key: 'jatuhTempo', label: 'Tgl Jatuh Tempo', width: 16, align: AC, render: r => r.jatuhTempo },
+    { key: 'nominal', label: 'Total Tagihan', width: 16, align: AR, isNominal: true, isNum: true, render: r => r.nominal },
+    { key: 'termin1', label: 'Termin 1', width: 13, align: AR, isNum: true, render: r => r.termin1 },
+    { key: 'termin2', label: 'Termin 2', width: 13, align: AR, isNum: true, render: r => r.termin2 },
+    { key: 'termin3', label: 'Termin 3', width: 13, align: AR, isNum: true, render: r => r.termin3 },
+    { key: 'status', label: 'Status', width: 12, align: AC, render: r => r.status === 'LUNAS' ? 'CLOSE' : r.status },
+    { key: 'tglClose', label: 'Tgl Close', width: 13, align: AC, render: r => r.tglClose || '-' },
+    { key: 'umur', label: 'Jatuh Tempo (hari)', width: 13, align: AC, render: r => r.umur },
+  ];
+
+  const activeDefs = ALL_DEFS.filter(d => cols[d.key]);
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lastDataCol = alphabet[activeDefs.length];
+  const rightLabelStartCol = activeDefs.length >= 3 ? alphabet[activeDefs.length - 2] : alphabet[1];
+
   const wb    = new ExcelJS.Workbook();
   wb.creator  = 'SOA Generator';
   wb.created  = new Date();
@@ -58,23 +81,13 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     pageSetup   : { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1 },
   });
 
-  // ── Lebar kolom ──────────────────────────────────────────────
-  // A (margin kiri kecil), B(No + label Kepada/ID),
-  // C(No Invoice), D(Tgl Invoice), E(Jatuh Tempo),
-  // F(Nominal Rp), G(Umur hari), H (margin kanan)
-  ws.columns = [
-    { key: 'A', width: 3.5  },  // A - margin kiri
-    { key: 'B', width: 8    },  // B - No
-    { key: 'C', width: 14   },  // C - No Invoice
-    { key: 'D', width: 13   },  // D - Tgl Invoice
-    { key: 'E', width: 16   },  // E - Tgl Jatuh Tempo
-    { key: 'F', width: 16   },  // F - Total Tagihan
-    { key: 'G', width: 13   },  // G - Termin 1
-    { key: 'H', width: 13   },  // H - Termin 2
-    { key: 'I', width: 13   },  // I - Termin 3
-    { key: 'J', width: 11   },  // J - Jatuh Tempo (hari)
-    { key: 'K', width: 3.5  },  // K - margin kanan
-  ];
+  const excelCols = [{ key: 'A', width: 3.5 }];
+  activeDefs.forEach((def, i) => {
+    def.colIdx = alphabet[i + 1];
+    excelCols.push({ key: def.colIdx, width: def.width });
+  });
+  excelCols.push({ key: alphabet[activeDefs.length + 1], width: 3.5 });
+  ws.columns = excelCols;
 
   // ═══════════════════════════════════════════════════════════════
   // BARIS 1 — Spacer Logo (jika ada)
@@ -181,24 +194,13 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   // BARIS 9 — Header tabel
   // ═══════════════════════════════════════════════════════════════
   ws.getRow(9).height = 28;
-  const tblHeaders = [
-    { col: 'B', label: 'No',           align: AC },
-    { col: 'C', label: 'No Invoice',   align: AC },
-    { col: 'D', label: 'Tgl Invoice',  align: AC },
-    { col: 'E', label: 'Tgl Jatuh Tempo',  align: AC },
-    { col: 'F', label: 'Total Tagihan', align: AC },
-    { col: 'G', label: 'Termin 1',       align: AC },
-    { col: 'H', label: 'Termin 2',       align: AC },
-    { col: 'I', label: 'Termin 3',       align: AC },
-    { col: 'J', label: 'Jatuh Tempo',  align: AC },
-  ];
-  tblHeaders.forEach(({ col, label, align }) => {
-    const cell    = ws.getCell(`${col}9`);
-    cell.value    = label;
-    cell.font     = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
-    cell.fill     = fillSolid(TABLE_HEAD);
-    cell.alignment= align;
-    cell.border   = borderTable();
+  activeDefs.forEach((def) => {
+    const cell = ws.getCell(`${def.colIdx}9`);
+    cell.value = def.label;
+    cell.font = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
+    cell.fill = fillSolid(TABLE_HEAD);
+    cell.alignment = def.align;
+    cell.border = borderTable();
   });
 
   // ═══════════════════════════════════════════════════════════════
@@ -212,44 +214,20 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     ws.getRow(rowNum).height = 22;
     const bg = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
 
-    // Kolom B: No
-    setDataCell(ws, rowNum, 'B', idx + 1, bg, { ...AC });
-
-    // Kolom C: No Invoice
-    setDataCell(ws, rowNum, 'C', r.noInvoice, bg, { ...AC });
-
-    // Kolom D: Tgl Invoice
-    setDataCell(ws, rowNum, 'D', r.tglInvoice, bg, { ...AC });
-
-    // Kolom E: Tgl Jatuh Tempo
-    setDataCell(ws, rowNum, 'E', r.jatuhTempo, bg, { ...AC });
-
-    // Kolom F: Total Tagihan
-    const cellF = ws.getCell(rowNum, colIndex('F'));
-    cellF.value     = r.nominal;
-    cellF.numFmt    = '#,##0';
-    cellF.fill      = fillSolid(bg);
-    cellF.alignment = AR;
-    cellF.border    = borderTable();
-    cellF.font      = { name: 'Calibri' };
-
-    // Kolom G, H, I: Termin 1, 2, 3
-    const formatTermin = (t) => t || '-';
-    
-    const cellG = ws.getCell(rowNum, colIndex('G'));
-    if(r.termin1) { cellG.value = r.termin1; cellG.numFmt = '#,##0'; } else { cellG.value = '-'; }
-    cellG.fill = fillSolid(bg); cellG.alignment = AR; cellG.border = borderTable(); cellG.font = { name: 'Calibri' };
-    
-    const cellH = ws.getCell(rowNum, colIndex('H'));
-    if(r.termin2) { cellH.value = r.termin2; cellH.numFmt = '#,##0'; } else { cellH.value = '-'; }
-    cellH.fill = fillSolid(bg); cellH.alignment = AR; cellH.border = borderTable(); cellH.font = { name: 'Calibri' };
-    
-    const cellI = ws.getCell(rowNum, colIndex('I'));
-    if(r.termin3) { cellI.value = r.termin3; cellI.numFmt = '#,##0'; } else { cellI.value = '-'; }
-    cellI.fill = fillSolid(bg); cellI.alignment = AR; cellI.border = borderTable(); cellI.font = { name: 'Calibri' };
-
-    // Kolom J: Umur
-    setDataCell(ws, rowNum, 'J', r.umur, bg, { ...AC });
+    activeDefs.forEach((def) => {
+      const val = def.render(r, idx);
+      const cell = ws.getCell(`${def.colIdx}${rowNum}`);
+      if (def.isNum) {
+        if (val) { cell.value = val; cell.numFmt = '#,##0'; }
+        else { cell.value = '-'; }
+      } else {
+        cell.value = val;
+      }
+      cell.fill = fillSolid(bg);
+      cell.alignment = def.align;
+      cell.border = borderTable();
+      cell.font = { name: 'Calibri' };
+    });
 
     totalNominal += r.nominal;
   });
@@ -269,27 +247,36 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   ws.getRow(TOTAL_ROW).height = 22;
   const labelTotal = statusFilter === 'CLOSE' ? 'TOTAL TAGIHAN CLOSE' : 'TOTAL TAGIHAN';
 
-  ws.mergeCells(`B${TOTAL_ROW}:E${TOTAL_ROW}`);
-  const cellTotLabel = ws.getCell(`B${TOTAL_ROW}`);
-  cellTotLabel.value     = labelTotal;
-  cellTotLabel.font      = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
-  cellTotLabel.fill      = fillSolid(DARK_RED);
-  cellTotLabel.alignment = AC;
+  const nominalDefIndex = activeDefs.findIndex(d => d.isNominal);
+  if (nominalDefIndex !== -1) {
+    const nominalColLetter = alphabet[nominalDefIndex + 1];
+    
+    const mergeStartCol = alphabet[1]; // B
+    const mergeEndCol = alphabet[nominalDefIndex]; // Col before nominal
+    if (nominalDefIndex > 0) {
+      ws.mergeCells(`${mergeStartCol}${TOTAL_ROW}:${mergeEndCol}${TOTAL_ROW}`);
+      const cellTotLabel = ws.getCell(`${mergeStartCol}${TOTAL_ROW}`);
+      cellTotLabel.value = labelTotal;
+      cellTotLabel.font = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
+      cellTotLabel.fill = fillSolid(DARK_RED);
+      cellTotLabel.alignment = AC;
+    }
 
-  const cellTotVal = ws.getCell(`F${TOTAL_ROW}`);
-  cellTotVal.value     = totalNominal;
-  cellTotVal.font      = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 12 };
-  cellTotVal.fill      = fillSolid(DARK_RED);
-  cellTotVal.alignment = { horizontal: 'right', vertical: 'middle' };
-  cellTotVal.numFmt    = '#,##0';
+    const cellTotVal = ws.getCell(`${nominalColLetter}${TOTAL_ROW}`);
+    cellTotVal.value = totalNominal;
+    cellTotVal.font = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 12 };
+    cellTotVal.fill = fillSolid(DARK_RED);
+    cellTotVal.alignment = { horizontal: 'right', vertical: 'middle' };
+    cellTotVal.numFmt = '#,##0';
 
-  // Sisa kosong (G, H, I, J)
-  ['G', 'H', 'I', 'J'].forEach(col => {
-    const cellTotEmpty = ws.getCell(`${col}${TOTAL_ROW}`);
-    cellTotEmpty.fill = fillSolid(DARK_RED);
-    cellTotEmpty.border = borderTable();
-    cellTotEmpty.alignment = AC;
-  });
+    // Sisa kosong di kanan
+    for (let i = nominalDefIndex + 1; i < activeDefs.length; i++) {
+      const emptyCell = ws.getCell(`${alphabet[i + 1]}${TOTAL_ROW}`);
+      emptyCell.fill = fillSolid(DARK_RED);
+      emptyCell.border = borderTable();
+      emptyCell.alignment = AC;
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // Terbilang, Hormat kami

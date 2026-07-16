@@ -12,7 +12,8 @@ function formatRp(num) {
   return new Intl.NumberFormat('id-ID').format(Math.round(num || 0));
 }
 
-export function generatePDF(company, cust, rows, statusFilter) {
+export function generatePDF(company, cust, rows, statusFilter, exportColumns = null) {
+  const cols = exportColumns || { no: true, customerId: true, namaCustomer: true, noInvoice: true, tglInvoice: true, jatuhTempo: true, nominal: true, termin1: true, termin2: true, termin3: true, status: true, tglClose: true, umur: true };
   const doc      = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const pageW    = 297; // Hardcode for A4 landscape to fix jsPDF pageSize bug
   const margin   = 15;
@@ -102,50 +103,53 @@ export function generatePDF(company, cust, rows, statusFilter) {
   y += 4; // Spasi sebelum tabel
 
   // 5. TABLE
-  const COL_W = [8, 19, 32, 28, 18, 18, 24, 20, 20, 20, 16, 18, 16];
-  const tableData = rows.map((r, i) => [
-    i + 1,
-    r.customerId,
-    r.namaCustomer,
-    r.noInvoice,
-    r.tglInvoice,
-    r.jatuhTempo,
-    formatRp(r.nominal),
-    r.termin1 ? formatRp(r.termin1) : '-',
-    r.termin2 ? formatRp(r.termin2) : '-',
-    r.termin3 ? formatRp(r.termin3) : '-',
-    r.status === 'LUNAS' ? 'CLOSE' : r.status,
-    r.tglClose || '-',
-    r.umur,
-  ]);
+  const colDefs = [
+    { key: 'no', label: 'No', width: 8, accessor: (r, i) => i + 1 },
+    { key: 'customerId', label: 'Customer ID', width: 19, accessor: r => r.customerId },
+    { key: 'namaCustomer', label: 'Nama Customer', width: 32, accessor: r => r.namaCustomer, align: 'left' },
+    { key: 'noInvoice', label: 'No Invoice', width: 28, accessor: r => r.noInvoice },
+    { key: 'tglInvoice', label: 'Tgl Invoice', width: 18, accessor: r => r.tglInvoice },
+    { key: 'jatuhTempo', label: 'Tgl Jatuh Tempo', width: 18, accessor: r => r.jatuhTempo },
+    { key: 'nominal', label: 'Total Tagihan', width: 24, accessor: r => formatRp(r.nominal) },
+    { key: 'termin1', label: 'Termin 1', width: 20, accessor: r => r.termin1 ? formatRp(r.termin1) : '-' },
+    { key: 'termin2', label: 'Termin 2', width: 20, accessor: r => r.termin2 ? formatRp(r.termin2) : '-' },
+    { key: 'termin3', label: 'Termin 3', width: 20, accessor: r => r.termin3 ? formatRp(r.termin3) : '-' },
+    { key: 'status', label: 'Status', width: 16, accessor: r => r.status === 'LUNAS' ? 'CLOSE' : r.status },
+    { key: 'tglClose', label: 'Tgl Close', width: 18, accessor: r => r.tglClose || '-' },
+    { key: 'umur', label: 'Jatuh Tempo', width: 16, accessor: r => r.umur },
+  ];
+
+  const activeCols = colDefs.filter(c => cols[c.key]);
+  
+  const headRow = activeCols.map(c => c.label);
+  const tableData = rows.map((r, i) => activeCols.map(c => c.accessor(r, i)));
+
+  const dynamicColStyles = {};
+  activeCols.forEach((c, i) => {
+    dynamicColStyles[i] = { cellWidth: c.width, halign: c.align || 'center' };
+  });
+
+  const hasNominal = cols.nominal;
+  const nominalIndex = activeCols.findIndex(c => c.key === 'nominal');
+  
+  let footRow = [];
+  if (hasNominal) {
+    footRow = [{ content: 'TOTAL TAGIHAN AKHIR', colSpan: nominalIndex, styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
+               { content: formatRp(rows.reduce((s, r) => s + r.nominal, 0)), styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } }];
+    if (nominalIndex < activeCols.length - 1) {
+      footRow.push({ content: '', colSpan: activeCols.length - 1 - nominalIndex, styles: { fillColor: [180, 0, 0] } });
+    }
+  }
 
   autoTable(doc, {
     startY      : y,
-    head        : [['No', 'Customer ID', 'Nama Customer', 'No Invoice', 'Tgl Invoice', 'Tgl Jatuh Tempo', 'Total Tagihan', 'Termin 1', 'Termin 2', 'Termin 3', 'Status', 'Tgl Close', 'Jatuh Tempo']],
+    head        : [headRow],
     body        : tableData,
-    foot        : [[
-      { content: 'TOTAL TAGIHAN AKHIR', colSpan: 6, styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
-      { content: formatRp(rows.reduce((s, r) => s + r.nominal, 0)), styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
-      { content: '', colSpan: 6, styles: { fillColor: [180, 0, 0] } }
-    ]],
+    foot        : hasNominal ? [footRow] : [],
     margin      : { left: margin, right: margin },
     tableWidth  : contentW,
     
-    columnStyles: {
-      0: { cellWidth: COL_W[0], halign: 'center' },
-      1: { cellWidth: COL_W[1], halign: 'center' },
-      2: { cellWidth: COL_W[2], halign: 'left' },
-      3: { cellWidth: COL_W[3], halign: 'center' },
-      4: { cellWidth: COL_W[4], halign: 'center' },
-      5: { cellWidth: COL_W[5], halign: 'center' },
-      6: { cellWidth: COL_W[6], halign: 'center' },
-      7: { cellWidth: COL_W[7], halign: 'center' },
-      8: { cellWidth: COL_W[8], halign: 'center' },
-      9: { cellWidth: COL_W[9], halign: 'center' },
-      10: { cellWidth: COL_W[10], halign: 'center' },
-      11: { cellWidth: COL_W[11], halign: 'center' },
-      12: { cellWidth: COL_W[12], halign: 'center' },
-    },
+    columnStyles: dynamicColStyles,
 
     headStyles: {
       fillColor  : BLACK,

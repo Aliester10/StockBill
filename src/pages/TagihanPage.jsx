@@ -6,6 +6,22 @@ import { generateSOA } from '../utils/generateSOA';
 import { generatePDF } from '../utils/generatePDF';
 
 // ── Helpers ──────────────────────────────────────────────────────
+export const ALL_COLUMNS = [
+  { id: 'no', label: 'No' },
+  { id: 'customerId', label: 'Customer ID' },
+  { id: 'namaCustomer', label: 'Nama Customer' },
+  { id: 'noInvoice', label: 'No Invoice' },
+  { id: 'tglInvoice', label: 'Tgl Invoice' },
+  { id: 'jatuhTempo', label: 'Tgl Jatuh Tempo' },
+  { id: 'nominal', label: 'Total Tagihan' },
+  { id: 'termin1', label: 'Termin 1' },
+  { id: 'termin2', label: 'Termin 2' },
+  { id: 'termin3', label: 'Termin 3' },
+  { id: 'status', label: 'Status' },
+  { id: 'tglClose', label: 'Tgl Close' },
+  { id: 'umur', label: 'Jatuh Tempo (Umur)' }
+];
+
 function formatRp(num) {
   if (!num && num !== 0) return '';
   return new Intl.NumberFormat('id-ID').format(num);
@@ -65,6 +81,15 @@ export default function TagihanPage() {
   const [selWaktu, setSelWaktu] = useState('ALL');
   const [genXls, setGenXls] = useState(false);
   const [genPdf, setGenPdf] = useState(false);
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportColumns, setExportColumns] = useState(
+    ALL_COLUMNS.reduce((acc, col) => ({ ...acc, [col.id]: true }), {})
+  );
+
+  function toggleExportColumn(id) {
+    setExportColumns(prev => ({ ...prev, [id]: !prev[id] }));
+  }
 
   // ── Import ───────────────────────────────────────────────────
   async function handleFileImport(e) {
@@ -235,12 +260,12 @@ export default function TagihanPage() {
   }
   async function handleGenExcel() {
     const p = getPayload(); if (!p) return; setGenXls(true);
-    try { await generateSOA(company, p.cust, p.rows, selStatus); showToast('Excel berhasil diunduh!', 'success'); }
+    try { await generateSOA(company, p.cust, p.rows, selStatus, exportColumns); showToast('Excel berhasil diunduh!', 'success'); }
     catch (e) { showToast('Gagal: ' + e.message, 'error'); } finally { setGenXls(false); }
   }
   async function handleGenPDF() {
     const p = getPayload(); if (!p) return; setGenPdf(true);
-    try { await generatePDF(company, p.cust, p.rows, selStatus); showToast('PDF berhasil diunduh!', 'success'); }
+    try { await generatePDF(company, p.cust, p.rows, selStatus, exportColumns); showToast('PDF berhasil diunduh!', 'success'); }
     catch (e) { showToast('Gagal: ' + e.message, 'error'); } finally { setGenPdf(false); }
   }
 
@@ -314,6 +339,9 @@ export default function TagihanPage() {
                   </select>
                 </div>
                 <div className="generate-btn-group">
+                  <button className="btn btn-secondary" onClick={() => setShowExportModal(true)}>
+                    ⚙️ Opsi Kolom Ekspor
+                  </button>
                   <button className="btn btn-excel" onClick={handleGenExcel} disabled={genXls || genPdf || displayed.length === 0}>
                     {genXls ? 'Memproses…' : 'Excel'}
                   </button>
@@ -322,6 +350,32 @@ export default function TagihanPage() {
                   </button>
                 </div>
               </div>
+
+              {showExportModal && (
+                <Modal onClose={() => setShowExportModal(false)} title="Pilih Kolom Ekspor" hideFooter={true}>
+                  <div style={{ padding: '16px 20px' }}>
+                    <p style={{ marginBottom: 16, color: 'var(--text-sub)' }}>
+                      Pilih kolom mana saja yang ingin Anda tampilkan pada dokumen hasil ekspor (PDF & Excel):
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      {ALL_COLUMNS.map(col => (
+                        <label key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={exportColumns[col.id]}
+                            onChange={() => toggleExportColumn(col.id)}
+                          />
+                          {col.label}
+                        </label>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 20, textAlign: 'right' }}>
+                      <button className="btn btn-primary" onClick={() => setShowExportModal(false)}>Selesai</button>
+                    </div>
+                  </div>
+                </Modal>
+              )}
+
             </>
           )}
         </div>

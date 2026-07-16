@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export default function Modal({ title, onClose, onSave, children }) {
+export default function Modal({ title, onClose, onSave, children, hideFooter }) {
   const overlayRef = useRef(null);
 
   useEffect(() => {
@@ -15,6 +15,7 @@ export default function Modal({ title, onClose, onSave, children }) {
     if (e.target === overlayRef.current) onClose();
   }
 
+  // Jika show prop tidak ada, asumsikan modal selalu ditampilkan saat komponen dipanggil
   return (
     <div className="modal-overlay" ref={overlayRef} onClick={handleOverlayClick}>
       <div className="modal-box">
@@ -23,10 +24,12 @@ export default function Modal({ title, onClose, onSave, children }) {
           <button className="btn-icon" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">{children}</div>
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Batal</button>
-          <button className="btn btn-primary" onClick={onSave}>Simpan</button>
-        </div>
+        {!hideFooter && (
+          <div className="modal-footer">
+            <button className="btn btn-secondary" onClick={onClose}>Batal</button>
+            <button className="btn btn-primary" onClick={onSave}>Simpan</button>
+          </div>
+        )}
       </div>
     </div>
   );
