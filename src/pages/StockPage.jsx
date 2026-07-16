@@ -373,6 +373,12 @@ export default function StockPage() {
 }
 
 const DetailView = ({ productName, data, onBack }) => {
+  const [expandedPOs, setExpandedPOs] = useState({});
+
+  const togglePo = (id) => {
+    setExpandedPOs(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   // Aggregate stats
   const totalOrder = data.reduce((acc, curr) => acc + curr.order, 0);
   const totalTransit = data.reduce((acc, curr) => acc + curr.transit, 0);
@@ -396,7 +402,7 @@ const DetailView = ({ productName, data, onBack }) => {
           <div className="text-sm text-muted uppercase mt-2 font-semibold">Report Produk</div>
           <h2 className="detail-title">{productName}</h2>
         </div>
-        <button className="export-btn" onClick={() => generateStockPDF(productName, data)}>
+        <button className="export-btn" onClick={() => generateStockPDF(productName, data, expandedPOs)}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: 6}}>
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -432,22 +438,25 @@ const DetailView = ({ productName, data, onBack }) => {
       <h3 className="history-title">Riwayat per PO</h3>
       <div className="po-history-list">
         {data.map(po => (
-          <PoHistoryCard key={po.id} po={po} formatNumber={formatNumber} />
+          <PoHistoryCard 
+            key={po.id} 
+            po={po} 
+            formatNumber={formatNumber} 
+            isExpanded={!!expandedPOs[po.id]}
+            onToggle={() => togglePo(po.id)}
+          />
         ))}
       </div>
     </div>
   );
 };
 
-const PoHistoryCard = ({ po, formatNumber }) => {
-  // By default, collapse all history. Only show/print if explicitly clicked.
-  const [isExpanded, setIsExpanded] = useState(false);
-
+const PoHistoryCard = ({ po, formatNumber, isExpanded, onToggle }) => {
   return (
     <div className="po-card">
       <div 
         className="po-card-header"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={onToggle}
       >
         <div className="flex-align-center gap-2">
           <h4 className="po-card-title">PO {po.noPo} <span style={{fontWeight: 400, margin: '0 4px'}}>|</span> {po.vendor}</h4>

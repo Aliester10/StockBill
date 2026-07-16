@@ -13,7 +13,7 @@ function formatNumber(num) {
   return new Intl.NumberFormat('id-ID').format(Math.round(num || 0));
 }
 
-export function generateStockPDF(productName, data) {
+export function generateStockPDF(productName, data, expandedPOs = {}) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 15;
@@ -118,21 +118,23 @@ export function generateStockPDF(productName, data) {
       { content: `Order ${formatNumber(po.order)} | Datang ${formatNumber(po.datang)} | Sisa ${formatNumber(po.sisa)}`, colSpan: 6, styles: { fontStyle: 'bold', textColor: [15, 23, 42], fillColor: [248, 250, 252] } }
     ]);
 
-    // Add History details
-    if (po.history && po.history.length > 0) {
-      po.history.forEach(hist => {
-        tableRows.push([
-          '',
-          hist.noGr || '-',
-          hist.tanggal,
-          formatNumber(hist.transit),
-          formatNumber(hist.datang),
-          hist.pic || '-',
-          hist.keterangan || '-'
-        ]);
-      });
-    } else {
-      tableRows.push(['', '-', '-', '-', '-', '-', 'Belum ada riwayat']);
+    // Add History details ONLY if the PO is expanded
+    if (expandedPOs[po.id]) {
+      if (po.history && po.history.length > 0) {
+        po.history.forEach(hist => {
+          tableRows.push([
+            '',
+            hist.noGr || '-',
+            hist.tanggal,
+            formatNumber(hist.transit),
+            formatNumber(hist.datang),
+            hist.pic || '-',
+            hist.keterangan || '-'
+          ]);
+        });
+      } else {
+        tableRows.push(['', '-', '-', '-', '-', '-', 'Belum ada riwayat']);
+      }
     }
   });
 
