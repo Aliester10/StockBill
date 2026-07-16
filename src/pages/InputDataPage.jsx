@@ -13,8 +13,9 @@ const emptyForm = () => ({
   status      : 'OPEN',
   tglClose    : '',
   umur        : '0',
-  terminName  : '',
-  terminNominal: '',
+  termin1     : '',
+  termin2     : '',
+  termin3     : '',
   baseNominal : ''
 });
 
@@ -67,7 +68,9 @@ export default function InputDataPage() {
   const [showForm,  setShowForm]  = useState(false);
   const [nominalDisplay, setNominalDisplay] = useState('');
   const [baseNominalDisplay, setBaseNominalDisplay] = useState('');
-  const [terminNominalDisplay, setTerminNominalDisplay] = useState('');
+  const [termin1Display, setTermin1Display] = useState('');
+  const [termin2Display, setTermin2Display] = useState('');
+  const [termin3Display, setTermin3Display] = useState('');
   const [filterCust, setFilterCust] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -127,28 +130,37 @@ export default function InputDataPage() {
     }));
   }
 
-  function handleTerminNominalChange(e) {
+  function handleTerminChange(e, terminKey) {
     let val = e.target.value.replace(/[^0-9]/g, '');
-    setTerminNominalDisplay(formatRp(val));
+    if (terminKey === 'termin1') setTermin1Display(formatRp(val));
+    if (terminKey === 'termin2') setTermin2Display(formatRp(val));
+    if (terminKey === 'termin3') setTermin3Display(formatRp(val));
     
-    let tNom = Number(val) || 0;
-    let bNom = Number(form.baseNominal) || 0;
-    let newNominal = String(Math.max(0, bNom - tNom));
-    
-    setForm(prev => ({ ...prev, terminNominal: val, nominal: newNominal }));
-    setNominalDisplay(formatRp(newNominal));
+    setForm(prev => {
+      const nextForm = { ...prev, [terminKey]: val };
+      const t1 = Number(nextForm.termin1) || 0;
+      const t2 = Number(nextForm.termin2) || 0;
+      const t3 = Number(nextForm.termin3) || 0;
+      const bNom = Number(nextForm.baseNominal) || 0;
+      nextForm.nominal = String(Math.max(0, bNom - (t1 + t2 + t3)));
+      setNominalDisplay(formatRp(nextForm.nominal));
+      return nextForm;
+    });
   }
 
   function handleBaseNominalChange(e) {
     let val = e.target.value.replace(/[^0-9]/g, '');
     setBaseNominalDisplay(formatRp(val));
     
-    let bNom = Number(val) || 0;
-    let tNom = Number(form.terminNominal) || 0;
-    let newNominal = String(Math.max(0, bNom - tNom));
-
-    setForm(prev => ({ ...prev, baseNominal: val, nominal: newNominal }));
-    setNominalDisplay(formatRp(newNominal));
+    setForm(prev => {
+      const bNom = Number(val) || 0;
+      const t1 = Number(prev.termin1) || 0;
+      const t2 = Number(prev.termin2) || 0;
+      const t3 = Number(prev.termin3) || 0;
+      const newNominal = String(Math.max(0, bNom - (t1 + t2 + t3)));
+      setNominalDisplay(formatRp(newNominal));
+      return { ...prev, baseNominal: val, nominal: newNominal };
+    });
   }
 
   function handleNominalChange(e) {
@@ -161,7 +173,7 @@ export default function InputDataPage() {
     setForm(emptyForm());
     setNominalDisplay('');
     setBaseNominalDisplay('');
-    setTerminNominalDisplay('');
+    setTermin1Display(''); setTermin2Display(''); setTermin3Display('');
     setEditIndex(null);
     setShowForm(true);
   }
@@ -178,12 +190,15 @@ export default function InputDataPage() {
       status      : r.status,
       tglClose    : displayDateToHtml(r.tglClose),
       umur        : String(r.umur),
-      terminName  : r.terminName || '',
-      terminNominal: r.terminNominal || '',
+      termin1     : r.termin1 || '',
+      termin2     : r.termin2 || '',
+      termin3     : r.termin3 || '',
       baseNominal : r.baseNominal || String(r.nominal),
     });
     setBaseNominalDisplay(r.baseNominal ? Number(r.baseNominal).toLocaleString('id-ID') : (r.nominal ? Number(r.nominal).toLocaleString('id-ID') : ''));
-    setTerminNominalDisplay(r.terminNominal ? Number(r.terminNominal).toLocaleString('id-ID') : '');
+    setTermin1Display(r.termin1 ? Number(r.termin1).toLocaleString('id-ID') : '');
+    setTermin2Display(r.termin2 ? Number(r.termin2).toLocaleString('id-ID') : '');
+    setTermin3Display(r.termin3 ? Number(r.termin3).toLocaleString('id-ID') : '');
     setNominalDisplay(r.nominal ? Number(r.nominal).toLocaleString('id-ID') : '');
     setEditIndex(index);
     setShowForm(true);
@@ -208,8 +223,9 @@ export default function InputDataPage() {
       status      : form.status,
       tglClose    : form.status === 'CLOSE' ? htmlDateToDisplay(form.tglClose) : '',
       umur        : Number(form.umur) || 0,
-      terminName  : form.terminName,
-      terminNominal: parseNominalInput(form.terminNominal) || 0,
+      termin1     : parseNominalInput(form.termin1) || 0,
+      termin2     : parseNominalInput(form.termin2) || 0,
+      termin3     : parseNominalInput(form.termin3) || 0,
       baseNominal : parseNominalInput(form.baseNominal || form.nominal),
     };
 
@@ -224,7 +240,7 @@ export default function InputDataPage() {
     setForm(emptyForm());
     setNominalDisplay('');
     setBaseNominalDisplay('');
-    setTerminNominalDisplay('');
+    setTermin1Display(''); setTermin2Display(''); setTermin3Display('');
   }
 
   function handleDelete(index) {
@@ -523,42 +539,31 @@ export default function InputDataPage() {
                   inputMode="numeric"
                 />
               </div>
-              <div className="form-group">
-                <label>Nama Termin</label>
-                <input
-                  name="terminName"
-                  className="form-control"
-                  placeholder="Cth: Termin 1 (Kosongkan jika tidak ada)"
-                  value={form.terminName || ''}
-                  onChange={handleChange}
-                />
+            </div>
+            <div style={{ padding: '12px 16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, marginBottom: 20 }}>
+              <div className="form-grid-2">
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label>Termin 1 (Rp)</label>
+                  <input className="form-control" placeholder="Cth: 2.000.000"
+                    value={termin1Display} onChange={e => handleTerminChange(e, 'termin1')} inputMode="numeric" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label>Termin 2 (Rp)</label>
+                  <input className="form-control" placeholder="Cth: 1.500.000"
+                    value={termin2Display} onChange={e => handleTerminChange(e, 'termin2')} inputMode="numeric" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Termin 3 (Rp)</label>
+                  <input className="form-control" placeholder="Cth: 1.000.000"
+                    value={termin3Display} onChange={e => handleTerminChange(e, 'termin3')} inputMode="numeric" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Total Tagihan Akhir (Rp) <span className="req">*</span></label>
+                  <input className="form-control" value={nominalDisplay} onChange={handleNominalChange} inputMode="numeric"
+                    style={{ fontWeight: 600, color: 'var(--dark-blue)' }} />
+                </div>
               </div>
             </div>
-
-            {form.terminName && (
-              <div className="form-grid-2" style={{ padding: '12px 16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, marginBottom: 20 }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Nominal Termin (Rp)</label>
-                  <input
-                    className="form-control"
-                    value={terminNominalDisplay}
-                    onChange={handleTerminNominalChange}
-                    inputMode="numeric"
-                    placeholder="Cth: 5.000.000"
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Nominal Sisa Tagihan (Rp) <span className="req">*</span></label>
-                  <input
-                    className="form-control"
-                    value={nominalDisplay}
-                    onChange={handleNominalChange}
-                    inputMode="numeric"
-                    style={{ fontWeight: 600, color: 'var(--dark-blue)' }}
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="form-grid-2">
               <div className="form-group">

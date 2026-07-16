@@ -67,11 +67,13 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     { key: 'B', width: 8    },  // B - No
     { key: 'C', width: 14   },  // C - No Invoice
     { key: 'D', width: 13   },  // D - Tgl Invoice
-    { key: 'E', width: 16   },  // E - Tgl Jatuh Tempo (diperlebar)
-    { key: 'F', width: 12   },  // F - Termin
-    { key: 'G', width: 16   },  // G - Nominal (Rp)
-    { key: 'H', width: 11   },  // H - Jatuh Tempo (hari)
-    { key: 'I', width: 3.5  },  // I - margin kanan
+    { key: 'E', width: 16   },  // E - Tgl Jatuh Tempo
+    { key: 'F', width: 16   },  // F - Total Tagihan
+    { key: 'G', width: 13   },  // G - Termin 1
+    { key: 'H', width: 13   },  // H - Termin 2
+    { key: 'I', width: 13   },  // I - Termin 3
+    { key: 'J', width: 11   },  // J - Jatuh Tempo (hari)
+    { key: 'K', width: 3.5  },  // K - margin kanan
   ];
 
   // ═══════════════════════════════════════════════════════════════
@@ -148,14 +150,14 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   // BARIS 5-7 — TO (Kepada) (Kanan, di atas tabel)
   // ═══════════════════════════════════════════════════════════════
   ws.getRow(5).height = 15;
-  ws.mergeCells('F5:H5');
+  ws.mergeCells('F5:J5');
   const c5F = ws.getCell('F5');
   c5F.value = 'Kepada :';
   c5F.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
   c5F.alignment = AL;
 
   ws.getRow(6).height = 15;
-  ws.mergeCells('F6:H6');
+  ws.mergeCells('F6:J6');
   const c6F = ws.getCell('F6');
   c6F.value = cust.name;
   c6F.font  = { bold: true, size: 11, name: 'Calibri', color: { argb: TEXT_DARK } };
@@ -163,7 +165,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
 
   if (cust.id && cust.id !== '-') {
     ws.getRow(7).height = 15;
-    ws.mergeCells('F7:H7');
+    ws.mergeCells('F7:J7');
     const c7F = ws.getCell('F7');
     c7F.value = `ID Customer: ${cust.id}`;
     c7F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_DARK } };
@@ -184,9 +186,11 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     { col: 'C', label: 'No Invoice',   align: AC },
     { col: 'D', label: 'Tgl Invoice',  align: AC },
     { col: 'E', label: 'Tgl Jatuh Tempo',  align: AC },
-    { col: 'F', label: 'Termin',       align: AC },
-    { col: 'G', label: 'Sisa Tagihan', align: AC },
-    { col: 'H', label: 'Jatuh Tempo',  align: AC },
+    { col: 'F', label: 'Total Tagihan', align: AC },
+    { col: 'G', label: 'Termin 1',       align: AC },
+    { col: 'H', label: 'Termin 2',       align: AC },
+    { col: 'I', label: 'Termin 3',       align: AC },
+    { col: 'J', label: 'Jatuh Tempo',  align: AC },
   ];
   tblHeaders.forEach(({ col, label, align }) => {
     const cell    = ws.getCell(`${col}9`);
@@ -220,21 +224,32 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     // Kolom E: Tgl Jatuh Tempo
     setDataCell(ws, rowNum, 'E', r.jatuhTempo, bg, { ...AC });
 
-    // Kolom F: Termin
-    const tNameFormat = r.terminName || '-';
-    setDataCell(ws, rowNum, 'F', tNameFormat, bg, { ...AC });
+    // Kolom F: Total Tagihan
+    const cellF = ws.getCell(rowNum, colIndex('F'));
+    cellF.value     = r.nominal;
+    cellF.numFmt    = '#,##0';
+    cellF.fill      = fillSolid(bg);
+    cellF.alignment = AR;
+    cellF.border    = borderTable();
+    cellF.font      = { name: 'Calibri' };
 
-    // Kolom G: Nominal
+    // Kolom G, H, I: Termin 1, 2, 3
+    const formatTermin = (t) => t || '-';
+    
     const cellG = ws.getCell(rowNum, colIndex('G'));
-    cellG.value     = r.nominal;
-    cellG.numFmt    = '#,##0';
-    cellG.fill      = fillSolid(bg);
-    cellG.alignment = AR;
-    cellG.border    = borderTable();
-    cellG.font      = { name: 'Calibri' };
+    if(r.termin1) { cellG.value = r.termin1; cellG.numFmt = '#,##0'; } else { cellG.value = '-'; }
+    cellG.fill = fillSolid(bg); cellG.alignment = AR; cellG.border = borderTable(); cellG.font = { name: 'Calibri' };
+    
+    const cellH = ws.getCell(rowNum, colIndex('H'));
+    if(r.termin2) { cellH.value = r.termin2; cellH.numFmt = '#,##0'; } else { cellH.value = '-'; }
+    cellH.fill = fillSolid(bg); cellH.alignment = AR; cellH.border = borderTable(); cellH.font = { name: 'Calibri' };
+    
+    const cellI = ws.getCell(rowNum, colIndex('I'));
+    if(r.termin3) { cellI.value = r.termin3; cellI.numFmt = '#,##0'; } else { cellI.value = '-'; }
+    cellI.fill = fillSolid(bg); cellI.alignment = AR; cellI.border = borderTable(); cellI.font = { name: 'Calibri' };
 
-    // Kolom H: Umur
-    setDataCell(ws, rowNum, 'H', r.umur, bg, { ...AC });
+    // Kolom J: Umur
+    setDataCell(ws, rowNum, 'J', r.umur, bg, { ...AC });
 
     totalNominal += r.nominal;
   });
@@ -254,25 +269,27 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   ws.getRow(TOTAL_ROW).height = 22;
   const labelTotal = statusFilter === 'CLOSE' ? 'TOTAL TAGIHAN CLOSE' : 'TOTAL TAGIHAN';
 
-  ws.mergeCells(`B${TOTAL_ROW}:F${TOTAL_ROW}`);
+  ws.mergeCells(`B${TOTAL_ROW}:E${TOTAL_ROW}`);
   const cellTotLabel = ws.getCell(`B${TOTAL_ROW}`);
   cellTotLabel.value     = labelTotal;
   cellTotLabel.font      = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
   cellTotLabel.fill      = fillSolid(DARK_RED);
   cellTotLabel.alignment = AC;
 
-  const cellTotVal = ws.getCell(`G${TOTAL_ROW}`);
+  const cellTotVal = ws.getCell(`F${TOTAL_ROW}`);
   cellTotVal.value     = totalNominal;
   cellTotVal.font      = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 12 };
   cellTotVal.fill      = fillSolid(DARK_RED);
   cellTotVal.alignment = { horizontal: 'right', vertical: 'middle' };
   cellTotVal.numFmt    = '#,##0';
 
-  // H kosong
-  const cellTotEmpty = ws.getCell(`H${TOTAL_ROW}`);
-  cellTotEmpty.fill = fillSolid(DARK_RED);
-  cellTotEmpty.border = borderTable();
-  cellTotEmpty.alignment = AC;
+  // Sisa kosong (G, H, I, J)
+  ['G', 'H', 'I', 'J'].forEach(col => {
+    const cellTotEmpty = ws.getCell(`${col}${TOTAL_ROW}`);
+    cellTotEmpty.fill = fillSolid(DARK_RED);
+    cellTotEmpty.border = borderTable();
+    cellTotEmpty.alignment = AC;
+  });
 
   // ═══════════════════════════════════════════════════════════════
   // Terbilang, Hormat kami

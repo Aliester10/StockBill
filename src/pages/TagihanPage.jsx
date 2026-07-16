@@ -39,7 +39,7 @@ const emptyForm = () => ({
   customerId: '', namaCustomer: '', noInvoice: '',
   tglInvoice: '', jatuhTempo: '', nominal: '',
   status: 'OPEN', tglClose: '', umur: '0',
-  terminName: '', terminNominal: '', baseNominal: ''
+  termin1: '', termin2: '', termin3: '', baseNominal: ''
 });
 
 export default function TagihanPage() {
@@ -57,7 +57,9 @@ export default function TagihanPage() {
   const [editIndex, setEditIndex] = useState(null);
   const [nominalDisplay, setNominalDisplay] = useState('');
   const [baseNominalDisplay, setBaseNominalDisplay] = useState('');
-  const [terminNominalDisplay, setTerminNominalDisplay] = useState('');
+  const [termin1Display, setTermin1Display] = useState('');
+  const [termin2Display, setTermin2Display] = useState('');
+  const [termin3Display, setTermin3Display] = useState('');
   const [selCustomer, setSelCustomer] = useState('');
   const [selStatus, setSelStatus] = useState('ALL');
   const [selWaktu, setSelWaktu] = useState('ALL');
@@ -119,28 +121,37 @@ export default function TagihanPage() {
     setForm(p => ({ ...p, namaCustomer: name, customerId: m ? m.id : p.customerId }));
   }
 
-  function handleTerminNominalChange(e) {
+  function handleTerminChange(e, terminKey) {
     let val = e.target.value.replace(/[^0-9]/g, '');
-    setTerminNominalDisplay(formatRp(val));
+    if (terminKey === 'termin1') setTermin1Display(formatRp(val));
+    if (terminKey === 'termin2') setTermin2Display(formatRp(val));
+    if (terminKey === 'termin3') setTermin3Display(formatRp(val));
     
-    let tNom = Number(val) || 0;
-    let bNom = Number(form.baseNominal) || 0;
-    let newNominal = String(Math.max(0, bNom - tNom));
-    
-    setForm(prev => ({ ...prev, terminNominal: val, nominal: newNominal }));
-    setNominalDisplay(formatRp(newNominal));
+    setForm(prev => {
+      const nextForm = { ...prev, [terminKey]: val };
+      const t1 = Number(nextForm.termin1) || 0;
+      const t2 = Number(nextForm.termin2) || 0;
+      const t3 = Number(nextForm.termin3) || 0;
+      const bNom = Number(nextForm.baseNominal) || 0;
+      nextForm.nominal = String(Math.max(0, bNom - (t1 + t2 + t3)));
+      setNominalDisplay(formatRp(nextForm.nominal));
+      return nextForm;
+    });
   }
 
   function handleBaseNominalChange(e) {
     let val = e.target.value.replace(/[^0-9]/g, '');
     setBaseNominalDisplay(formatRp(val));
 
-    let bNom = Number(val) || 0;
-    let tNom = Number(form.terminNominal) || 0;
-    let newNominal = String(Math.max(0, bNom - tNom));
-
-    setForm(prev => ({ ...prev, baseNominal: val, nominal: newNominal }));
-    setNominalDisplay(formatRp(newNominal));
+    setForm(prev => {
+      const bNom = Number(val) || 0;
+      const t1 = Number(prev.termin1) || 0;
+      const t2 = Number(prev.termin2) || 0;
+      const t3 = Number(prev.termin3) || 0;
+      const newNominal = String(Math.max(0, bNom - (t1 + t2 + t3)));
+      setNominalDisplay(formatRp(newNominal));
+      return { ...prev, baseNominal: val, nominal: newNominal };
+    });
   }
 
   function handleNominalChange(e) {
@@ -149,7 +160,12 @@ export default function TagihanPage() {
     setForm(p => ({ ...p, nominal: val }));
   }
 
-  function openAdd() { setForm(emptyForm()); setNominalDisplay(''); setBaseNominalDisplay(''); setTerminNominalDisplay(''); setEditIndex(null); setShowForm(true); }
+  function openAdd() { 
+    setForm(emptyForm()); 
+    setNominalDisplay(''); setBaseNominalDisplay(''); 
+    setTermin1Display(''); setTermin2Display(''); setTermin3Display('');
+    setEditIndex(null); setShowForm(true); 
+  }
   function openEdit(idx) {
     const r = tagihanRows[idx];
     setForm({
@@ -157,11 +173,13 @@ export default function TagihanPage() {
       tglInvoice: displayDateToHtml(r.tglInvoice), jatuhTempo: displayDateToHtml(r.jatuhTempo),
       nominal: String(r.nominal), status: r.status,
       tglClose: displayDateToHtml(r.tglClose), umur: String(r.umur),
-      terminName: r.terminName || '',
-      terminNominal: r.terminNominal || '', baseNominal: r.baseNominal || String(r.nominal)
+      termin1: r.termin1 || '', termin2: r.termin2 || '', termin3: r.termin3 || '',
+      baseNominal: r.baseNominal || String(r.nominal)
     });
     setBaseNominalDisplay(r.baseNominal ? Number(r.baseNominal).toLocaleString('id-ID') : (r.nominal ? Number(r.nominal).toLocaleString('id-ID') : ''));
-    setTerminNominalDisplay(r.terminNominal ? Number(r.terminNominal).toLocaleString('id-ID') : '');
+    setTermin1Display(r.termin1 ? Number(r.termin1).toLocaleString('id-ID') : '');
+    setTermin2Display(r.termin2 ? Number(r.termin2).toLocaleString('id-ID') : '');
+    setTermin3Display(r.termin3 ? Number(r.termin3).toLocaleString('id-ID') : '');
     setNominalDisplay(r.nominal ? Number(r.nominal).toLocaleString('id-ID') : '');
     setEditIndex(idx); setShowForm(true);
   }
@@ -179,13 +197,16 @@ export default function TagihanPage() {
       nominal: parseNominalInput(form.nominal), status: form.status,
       tglClose: form.status === 'CLOSE' ? htmlDateToDisplay(form.tglClose) : '',
       umur: Number(form.umur) || 0,
-      terminName: form.terminName,
-      terminNominal: parseNominalInput(form.terminNominal) || 0, 
+      termin1: parseNominalInput(form.termin1) || 0,
+      termin2: parseNominalInput(form.termin2) || 0,
+      termin3: parseNominalInput(form.termin3) || 0,
       baseNominal: parseNominalInput(form.baseNominal || form.nominal)
     };
     if (editIndex !== null) { updateTagihanRow(editIndex, row); showToast('Data diupdate!', 'success'); }
     else { addTagihanRow(row); showToast('Data disimpan!', 'success'); }
-    setShowForm(false); setForm(emptyForm()); setNominalDisplay(''); setBaseNominalDisplay(''); setTerminNominalDisplay('');
+    setShowForm(false); setForm(emptyForm()); 
+    setNominalDisplay(''); setBaseNominalDisplay(''); 
+    setTermin1Display(''); setTermin2Display(''); setTermin3Display('');
   }
 
   // ── Generate ─────────────────────────────────────────────────
@@ -333,8 +354,10 @@ export default function TagihanPage() {
                   <th style={{ width: 40 }}>No</th>
                   <th>Customer ID</th><th>Nama Customer</th>
                   <th>No Invoice</th><th>Tgl Invoice</th><th>Tgl Jatuh Tempo</th>
-                  <th style={{ width: 100, textAlign: 'right' }}>Sisa Tagihan</th>
-                  <th style={{ width: 100, textAlign: 'center' }}>Termin</th>
+                  <th style={{ width: 100, textAlign: 'right' }}>Total tagihan</th>
+                  <th style={{ width: 80, textAlign: 'right' }}>Termin 1</th>
+                  <th style={{ width: 80, textAlign: 'right' }}>Termin 2</th>
+                  <th style={{ width: 80, textAlign: 'right' }}>Termin 3</th>
                   <th style={{ width: 80, textAlign: 'center' }}>Status</th><th>Tgl Close</th>
                   <th style={{ width: 80 }}>Jatuh Tempo</th>
                   <th style={{ width: 80 }}>Aksi</th>
@@ -353,7 +376,9 @@ export default function TagihanPage() {
                       <td className="center-cell">{r.tglInvoice}</td>
                       <td className="center-cell">{r.jatuhTempo}</td>
                       <td className="nominal-cell">{formatRp(r.nominal)}</td>
-                      <td style={{ fontSize: 13, color: '#64748B', textAlign: 'center' }}>{r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-'}</td>
+                      <td className="nominal-cell">{r.termin1 ? formatRp(r.termin1) : '-'}</td>
+                      <td className="nominal-cell">{r.termin2 ? formatRp(r.termin2) : '-'}</td>
+                      <td className="nominal-cell">{r.termin3 ? formatRp(r.termin3) : '-'}</td>
                       <td><span className={r.status === 'OPEN' ? 'status-open' : 'status-close'}>{r.status === 'LUNAS' ? 'CLOSE' : r.status}</span></td>
                       <td className="center-cell">{r.tglClose || '—'}</td>
                       <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>{r.umur} Hari</td>
@@ -444,37 +469,31 @@ export default function TagihanPage() {
               <input className="form-control" placeholder="Contoh: 10.092.422"
                 value={baseNominalDisplay} onChange={handleBaseNominalChange} inputMode="numeric" />
             </div>
-            <div className="form-group">
-              <label>Nama Termin</label>
-              <input name="terminName" className="form-control" placeholder="Cth: Termin 1 (Kosongkan jika tidak ada)" 
-                value={form.terminName || ''} onChange={handleChange} />
+          </div>
+          <div style={{ padding: '12px 16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, marginBottom: 20 }}>
+            <div className="form-grid-2">
+              <div className="form-group" style={{ marginBottom: 12 }}>
+                <label>Termin 1 (Rp)</label>
+                <input className="form-control" placeholder="Cth: 2.000.000"
+                  value={termin1Display} onChange={e => handleTerminChange(e, 'termin1')} inputMode="numeric" />
+              </div>
+              <div className="form-group" style={{ marginBottom: 12 }}>
+                <label>Termin 2 (Rp)</label>
+                <input className="form-control" placeholder="Cth: 1.500.000"
+                  value={termin2Display} onChange={e => handleTerminChange(e, 'termin2')} inputMode="numeric" />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Termin 3 (Rp)</label>
+                <input className="form-control" placeholder="Cth: 1.000.000"
+                  value={termin3Display} onChange={e => handleTerminChange(e, 'termin3')} inputMode="numeric" />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Total Tagihan Akhir (Rp) <span className="req">*</span></label>
+                <input className="form-control" value={nominalDisplay} onChange={handleNominalChange} inputMode="numeric"
+                  style={{ fontWeight: 600, color: 'var(--dark-blue)' }} />
+              </div>
             </div>
           </div>
-
-          {form.terminName && (
-            <div className="form-grid-2" style={{ padding: '12px 16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, marginBottom: 20 }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Nominal Termin (Rp)</label>
-                <input
-                  className="form-control"
-                  value={terminNominalDisplay}
-                  onChange={handleTerminNominalChange}
-                  inputMode="numeric"
-                  placeholder="Cth: 5.000.000"
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Nominal Sisa Tagihan (Rp) <span className="req">*</span></label>
-                <input
-                  className="form-control"
-                  value={nominalDisplay}
-                  onChange={handleNominalChange}
-                  inputMode="numeric"
-                  style={{ fontWeight: 600, color: 'var(--dark-blue)' }}
-                />
-              </div>
-            </div>
-          )}
 
           <div className="form-grid-2">
             <div className="form-group">

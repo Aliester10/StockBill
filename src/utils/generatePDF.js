@@ -102,7 +102,7 @@ export function generatePDF(company, cust, rows, statusFilter) {
   y += 4; // Spasi sebelum tabel
 
   // 5. TABLE
-  const COL_W = [10, 22, 40, 32, 24, 24, 36, 18, 20, 24, 17];
+  const COL_W = [8, 19, 32, 28, 18, 18, 24, 20, 20, 20, 16, 18, 16];
   const tableData = rows.map((r, i) => [
     i + 1,
     r.customerId,
@@ -111,7 +111,9 @@ export function generatePDF(company, cust, rows, statusFilter) {
     r.tglInvoice,
     r.jatuhTempo,
     formatRp(r.nominal),
-    r.terminName || '-',
+    r.termin1 ? formatRp(r.termin1) : '-',
+    r.termin2 ? formatRp(r.termin2) : '-',
+    r.termin3 ? formatRp(r.termin3) : '-',
     r.status === 'LUNAS' ? 'CLOSE' : r.status,
     r.tglClose || '-',
     r.umur,
@@ -119,12 +121,12 @@ export function generatePDF(company, cust, rows, statusFilter) {
 
   autoTable(doc, {
     startY      : y,
-    head        : [['No', 'Customer ID', 'Nama Customer', 'No Invoice', 'Tgl Invoice', 'Tgl Jatuh Tempo', 'Sisa Tagihan', 'Termin', 'Status', 'Tgl Close', 'Jatuh Tempo']],
+    head        : [['No', 'Customer ID', 'Nama Customer', 'No Invoice', 'Tgl Invoice', 'Tgl Jatuh Tempo', 'Total Tagihan', 'Termin 1', 'Termin 2', 'Termin 3', 'Status', 'Tgl Close', 'Jatuh Tempo']],
     body        : tableData,
     foot        : [[
-      { content: 'TOTAL TAGIHAN', colSpan: 6, styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
+      { content: 'TOTAL TAGIHAN AKHIR', colSpan: 6, styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
       { content: formatRp(rows.reduce((s, r) => s + r.nominal, 0)), styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
-      { content: '', colSpan: 4, styles: { fillColor: [180, 0, 0] } }
+      { content: '', colSpan: 6, styles: { fillColor: [180, 0, 0] } }
     ]],
     margin      : { left: margin, right: margin },
     tableWidth  : contentW,
@@ -141,6 +143,8 @@ export function generatePDF(company, cust, rows, statusFilter) {
       8: { cellWidth: COL_W[8], halign: 'center' },
       9: { cellWidth: COL_W[9], halign: 'center' },
       10: { cellWidth: COL_W[10], halign: 'center' },
+      11: { cellWidth: COL_W[11], halign: 'center' },
+      12: { cellWidth: COL_W[12], halign: 'center' },
     },
 
     headStyles: {
