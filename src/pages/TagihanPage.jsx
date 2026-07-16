@@ -487,7 +487,8 @@ export default function TagihanPage() {
                     type="number"
                     className="form-control"
                     value={form.terminPercent}
-                    onChange={handlePercentChange}
+                    readOnly
+                    style={{ background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
                     placeholder="0"
                   />
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>%</span>
