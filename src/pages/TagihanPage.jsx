@@ -229,7 +229,7 @@ export default function TagihanPage() {
     }
 
     if (selStatus === 'OPEN') rows = rows.filter(r => r.status === 'OPEN');
-    if (selStatus === 'CLOSE') rows = rows.filter(r => r.status === 'CLOSE');
+    if (selStatus === 'CLOSE') rows = rows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS');
     if (selWaktu === 'OVERDUE') rows = rows.filter(r => r.status === 'OPEN' && Number(r.umur) <= 14);
 
     if (!rows.length) { showToast(`Tidak ada tagihan yang sesuai filter.`, 'error'); return null; }
@@ -256,7 +256,7 @@ export default function TagihanPage() {
   let displayed = dynamicRows;
   if (selCustomer) displayed = displayed.filter(r => r.customerId === selCustomer);
   if (selStatus === 'OPEN') displayed = displayed.filter(r => r.status === 'OPEN');
-  if (selStatus === 'CLOSE') displayed = displayed.filter(r => r.status === 'CLOSE');
+  if (selStatus === 'CLOSE') displayed = displayed.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS');
   if (selWaktu === 'OVERDUE') displayed = displayed.filter(r => r.status === 'OPEN' && Number(r.umur) <= 14);
 
   const totalSemua = displayed.reduce((s, r) => s + r.nominal, 0);
@@ -569,7 +569,7 @@ export default function TagihanPage() {
 // ── Sub-komponen ──────────────────────────────────────────────────
 function SoaPreview({ cust, rows, selStatus, previewOpen, previewClose }) {
   const count = selStatus === 'OPEN' ? rows.filter(r => r.status === 'OPEN').length
-    : selStatus === 'CLOSE' ? rows.filter(r => r.status === 'CLOSE').length
+    : selStatus === 'CLOSE' ? rows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS').length
       : rows.length;
   const label = selStatus === 'OPEN' ? 'Open' : selStatus === 'CLOSE' ? 'Close' : 'Open/Close';
   const total = selStatus === 'CLOSE' ? previewClose

@@ -54,51 +54,52 @@ export function generatePDF(company, cust, rows, statusFilter) {
     leftY += 4.5;
   }
   
-  // 2. TOP RIGHT: TO (Kepada)
-  const toBlockX = pageW - margin - 60;
-  let rightY = companyNameY - 5;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...TEXT_DARK);
-  doc.text('To', toBlockX, rightY, { align: 'left' });
-  rightY += 5;
-  
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(cust.name, toBlockX, rightY, { align: 'left' });
-  rightY += 5;
-  
-  if (cust.id && cust.id !== '-') {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text(`ID Customer: ${cust.id}`, toBlockX, rightY, { align: 'left' });
-    rightY += 5;
-  }
-
-  // 3. TITLE: Statement of Accounts
-  let titleY = Math.max(leftY, rightY) + 12;
+  // 2. TITLE: Statement of Accounts (Top Right)
+  let rightY = companyNameY; // Sejajar dengan company name
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(...BLACK);
-  doc.text('Statement of Accounts', pageW - margin, titleY, { align: 'right' });
-  titleY += 2;
+  doc.text('Statement of Accounts', pageW - margin, rightY, { align: 'right' });
+  rightY += 2;
   
   // Date under title
   const dateStr = `As of ${new Date().toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric'})}`;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...TEXT_GRAY);
-  doc.text(dateStr, pageW - margin, titleY + 4, { align: 'right' });
+  doc.text(dateStr, pageW - margin, rightY + 4, { align: 'right' });
   
   // Line under title
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.5);
-  doc.line(pageW - margin - 80, titleY + 6, pageW - margin, titleY + 6);
+  doc.line(pageW - margin - 80, rightY + 6, pageW - margin, rightY + 6);
+  rightY += 12;
+
+  let y = Math.max(leftY, rightY) + 10;
   
-  // Set Y for table
-  let y = titleY + 14;
+  // 3. TO (Kepada) (Kanan bawah, di atas tabel)
+  const toBlockX = pageW - margin - 80;
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text('Kepada :', toBlockX, y, { align: 'left' });
+  y += 5;
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(cust.name, toBlockX, y, { align: 'left' });
+  y += 5;
+  
+  if (cust.id && cust.id !== '-') {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(`ID Customer: ${cust.id}`, toBlockX, y, { align: 'left' });
+    y += 5;
+  }
+  
+  y += 4; // Spasi sebelum tabel
 
   // 5. TABLE
   const COL_W = [10, 22, 40, 32, 24, 24, 36, 18, 20, 24, 17];

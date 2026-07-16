@@ -152,8 +152,8 @@ function defaultCompany() {
 
 function defaultTermins() {
   return [
-    { id: 't1', name: 'Nominal Termin 1', percent: 50 },
-    { id: 't2', name: 'Nominal Termin 2', percent: 30 },
-    { id: 't3', name: 'Nominal Termin 3', percent: 20 }
+    { id: 't1', name: '1', percent: 50 },
+    { id: 't2', name: '2', percent: 30 },
+    { id: 't3', name: '3', percent: 20 }
   ];
 }

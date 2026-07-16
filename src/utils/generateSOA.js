@@ -4,12 +4,22 @@ import { terbilang } from './terbilang';
 
 // ── Warna ──────────────────────────────────────────────────────────────
 const DARK_BLUE  = 'FF1F3864';
+const TABLE_HEAD = 'FF2D2D2D'; // Warna gelap seperti di PDF
 const DARK_RED   = 'FFC00000';
 const WHITE      = 'FFFFFFFF';
 const LIGHT_GRAY = 'FFF2F2F2';
 const BORDER_CLR = 'FFD0D0D0';
 const TEXT_DARK  = 'FF1E293B';
 const TEXT_GRAY  = 'FF64748B';
+
+function getImageDimensions(base64) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.width, h: img.height });
+    img.onerror = () => resolve({ w: 100, h: 40 }); // fallback
+    img.src = base64;
+  });
+}
 
 // ── Helper style ────────────────────────────────────────────────────────
 const bd = (style = 'thin', color = BORDER_CLR) => ({ style, color: { argb: color } });
@@ -68,6 +78,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   // BARIS 1 — Spacer Logo (jika ada)
   // ═══════════════════════════════════════════════════════════════
   let hasLogo = false;
+  let logoHeight = 40;
   if (company.logo) {
     try {
       const match = company.logo.match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/);
@@ -78,16 +89,23 @@ export async function generateSOA(company, cust, rows, statusFilter) {
           base64: company.logo,
           extension: ext,
         });
+        
+        // Calculate aspect ratio so it doesn't look squashed
+        const dims = await getImageDimensions(company.logo);
+        const imgH = 40; // Fixed height in Excel rows
+        const imgW = (dims.w * imgH) / dims.h;
+        logoHeight = imgH;
+        
         ws.addImage(imageId, {
           tl: { col: 1, row: 0 }, // B1
-          ext: { width: 100, height: 40 }, // Sesuaikan dimensi logo
+          ext: { width: imgW, height: imgH },
         });
         hasLogo = true;
       }
     } catch (e) { console.error(e); }
   }
 
-  ws.getRow(1).height = hasLogo ? 45 : 10;
+  ws.getRow(1).height = hasLogo ? logoHeight + 5 : 10;
 
   // ═══════════════════════════════════════════════════════════════
   // BARIS 2-4 — Company Info (Kiri) & TO Block (Kanan)
@@ -98,11 +116,11 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   c2B.font  = { bold: true, size: 14, name: 'Calibri', color: { argb: TEXT_DARK } };
   c2B.alignment = AL;
 
-  ws.mergeCells('G2:H2');
-  const c2G = ws.getCell('G2');
-  c2G.value = 'To';
-  c2G.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
-  c2G.alignment = AL;
+  ws.mergeCells('F2:H2');
+  const c2F = ws.getCell('F2');
+  c2F.value = 'Statement of Accounts';
+  c2F.font  = { bold: true, size: 18, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c2F.alignment = { horizontal: 'right', vertical: 'bottom' };
 
   ws.getRow(3).height = 15;
   const c3B = ws.getCell('B3');
@@ -110,11 +128,15 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   c3B.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
   c3B.alignment = AL;
 
-  ws.mergeCells('G3:H3');
-  const c3G = ws.getCell('G3');
-  c3G.value = cust.name;
-  c3G.font  = { bold: true, size: 11, name: 'Calibri', color: { argb: TEXT_DARK } };
-  c3G.alignment = AL;
+  ws.mergeCells('F3:H3');
+  const c3F = ws.getCell('F3');
+  const dateStr = `As of ${new Date().toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric'})}`;
+  c3F.value = dateStr;
+  c3F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
+  c3F.alignment = { horizontal: 'right', vertical: 'middle' };
+  
+  // Berikan garis bawah pada baris tanggal
+  c3F.border = { bottom: bd('medium', BORDER_CLR) };
 
   ws.getRow(4).height = 15;
   const c4B = ws.getCell('B4');
@@ -122,39 +144,31 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   c4B.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
   c4B.alignment = AL;
 
-  if (cust.id && cust.id !== '-') {
-    ws.mergeCells('G4:H4');
-    const c4G = ws.getCell('G4');
-    c4G.value = `ID Customer: ${cust.id}`;
-    c4G.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_DARK } };
-    c4G.alignment = AL;
-  }
-
   // ═══════════════════════════════════════════════════════════════
-  // BARIS 5 — Spacer
+  // BARIS 6-8 — TO (Kepada) (Kanan, di atas tabel)
   // ═══════════════════════════════════════════════════════════════
-  ws.getRow(5).height = 15;
-
-  // ═══════════════════════════════════════════════════════════════
-  // BARIS 6-7 — TITLE & DATE (Kanan)
-  // ═══════════════════════════════════════════════════════════════
-  ws.getRow(6).height = 24;
+  ws.getRow(6).height = 15;
   ws.mergeCells('F6:H6');
   const c6F = ws.getCell('F6');
-  c6F.value = 'Statement of Accounts';
-  c6F.font  = { bold: true, size: 18, name: 'Calibri', color: { argb: TEXT_DARK } };
-  c6F.alignment = { horizontal: 'right', vertical: 'bottom' };
+  c6F.value = 'Kepada :';
+  c6F.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c6F.alignment = AL;
 
   ws.getRow(7).height = 15;
   ws.mergeCells('F7:H7');
   const c7F = ws.getCell('F7');
-  const dateStr = `As of ${new Date().toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric'})}`;
-  c7F.value = dateStr;
-  c7F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
-  c7F.alignment = { horizontal: 'right', vertical: 'middle' };
-  
-  // Berikan garis bawah pada baris tanggal
-  c7F.border = { bottom: bd('medium', BORDER_CLR) };
+  c7F.value = cust.name;
+  c7F.font  = { bold: true, size: 11, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c7F.alignment = AL;
+
+  if (cust.id && cust.id !== '-') {
+    ws.getRow(8).height = 15; // Shift spacer down if id exists
+    ws.mergeCells('F8:H8');
+    const c8F = ws.getCell('F8');
+    c8F.value = `ID Customer: ${cust.id}`;
+    c8F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_DARK } };
+    c8F.alignment = AL;
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // BARIS 8 — Spacer
@@ -178,7 +192,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     const cell    = ws.getCell(`${col}9`);
     cell.value    = label;
     cell.font     = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
-    cell.fill     = fillSolid(DARK_BLUE);
+    cell.fill     = fillSolid(TABLE_HEAD);
     cell.alignment= align;
     cell.border   = borderTable();
   });
@@ -237,7 +251,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   // ═══════════════════════════════════════════════════════════════
   // BARIS TOTAL TAGIHAN (simetris B:G penuh seperti tabel)
   // ═══════════════════════════════════════════════════════════════
-  ws.getRow(TOTAL_ROW).height = 30;
+  ws.getRow(TOTAL_ROW).height = 22;
   const labelTotal = statusFilter === 'CLOSE' ? 'TOTAL TAGIHAN CLOSE' : 'TOTAL TAGIHAN';
 
   ws.mergeCells(`B${TOTAL_ROW}:F${TOTAL_ROW}`);
