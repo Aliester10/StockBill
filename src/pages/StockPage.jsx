@@ -181,10 +181,10 @@ export default function StockPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="Semua">Status: Semua</option>
-          <option value="GR">Status: GR</option>
-          <option value="Partial">Status: Partial</option>
-          <option value="Belum datang">Status: Belum datang</option>
+          <option value="Semua">Semua</option>
+          <option value="GR">Goods Receipt (GR)</option>
+          <option value="Partial">Partial</option>
+          <option value="Belum datang">Belum datang</option>
         </select>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 

@@ -8,6 +8,8 @@ const DARK_RED   = 'FFC00000';
 const WHITE      = 'FFFFFFFF';
 const LIGHT_GRAY = 'FFF2F2F2';
 const BORDER_CLR = 'FFD0D0D0';
+const TEXT_DARK  = 'FF1E293B';
+const TEXT_GRAY  = 'FF64748B';
 
 // ── Helper style ────────────────────────────────────────────────────────
 const bd = (style = 'thin', color = BORDER_CLR) => ({ style, color: { argb: color } });
@@ -63,7 +65,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   ];
 
   // ═══════════════════════════════════════════════════════════════
-  // BARIS 1 — Judul STATEMENT OF ACCOUNT & LOGO
+  // BARIS 1 — Spacer Logo (jika ada)
   // ═══════════════════════════════════════════════════════════════
   let hasLogo = false;
   if (company.logo) {
@@ -77,94 +79,92 @@ export async function generateSOA(company, cust, rows, statusFilter) {
           extension: ext,
         });
         ws.addImage(imageId, {
-          tl: { col: 4, row: 0 }, // E1 (centerish)
-          ext: { width: 150, height: 50 },
+          tl: { col: 1, row: 0 }, // B1
+          ext: { width: 100, height: 40 }, // Sesuaikan dimensi logo
         });
         hasLogo = true;
       }
     } catch (e) { console.error(e); }
   }
 
-  ws.getRow(1).height = hasLogo ? 80 : 40;
-  ws.mergeCells('A1:I1');
-  const r1 = ws.getCell('A1');
-  r1.value     = 'STATEMENT OF ACCOUNT';
-  r1.font      = { bold: true, size: 16, name: 'Calibri' };
-  r1.alignment = { horizontal: 'center', vertical: hasLogo ? 'bottom' : 'middle' };
+  ws.getRow(1).height = hasLogo ? 45 : 10;
 
   // ═══════════════════════════════════════════════════════════════
-  // BARIS 2 — Info perusahaan
+  // BARIS 2-4 — Company Info (Kiri) & TO Block (Kanan)
   // ═══════════════════════════════════════════════════════════════
-  ws.getRow(2).height = 20;
-  ws.mergeCells('A2:I2');
-  const r2 = ws.getCell('A2');
-  r2.value     = `${company.name}  |  ${company.address}  |  Telp ${company.telp}`;
-  r2.font      = { size: 10, name: 'Calibri' };
-  r2.alignment = AC;
+  ws.getRow(2).height = 18;
+  const c2B = ws.getCell('B2');
+  c2B.value = company.name || 'Company Name';
+  c2B.font  = { bold: true, size: 14, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c2B.alignment = AL;
 
-  // ═══════════════════════════════════════════════════════════════
-  // BARIS 3 — Kosong (spacer)
-  // ═══════════════════════════════════════════════════════════════
-  ws.getRow(3).height = 10;
+  ws.mergeCells('G2:H2');
+  const c2G = ws.getCell('G2');
+  c2G.value = 'To';
+  c2G.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c2G.alignment = AL;
 
-  // ═══════════════════════════════════════════════════════════════
-  // BARIS 4 — Kepada & Status
-  // ═══════════════════════════════════════════════════════════════
-  ws.getRow(4).height = 28;
+  ws.getRow(3).height = 15;
+  const c3B = ws.getCell('B3');
+  c3B.value = company.address || '';
+  c3B.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
+  c3B.alignment = AL;
 
-  // "Kepada :" — di B4, kolom B cukup lebar (11) agar teks tidak terpotong
-  // Simetris dengan "ID Customer:" di B5
+  ws.mergeCells('G3:H3');
+  const c3G = ws.getCell('G3');
+  c3G.value = cust.name;
+  c3G.font  = { bold: true, size: 11, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c3G.alignment = AL;
+
+  ws.getRow(4).height = 15;
   const c4B = ws.getCell('B4');
-  c4B.value     = 'Kepada :';
-  c4B.font      = { bold: true, name: 'Calibri' };
-  c4B.alignment = { horizontal: 'left', vertical: 'middle' };
+  c4B.value = company.telp ? `Telp: ${company.telp}` : '';
+  c4B.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
+  c4B.alignment = AL;
 
-  // Nama customer — merge C4:E4, border box, teks rata kiri
-  ws.mergeCells('C4:E4');
-  const c4C = ws.getCell('C4');
-  c4C.value     = cust.name;
-  c4C.font      = { bold: true, size: 12, name: 'Calibri' };
-  c4C.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  c4C.border    = {
-    top   : bd('thin', 'FF000000'),
-    left  : bd('thin', 'FF000000'),
-    bottom: bd('thin', 'FF000000'),
-    right : bd('thin', 'FF000000'),
-  };
-
-  // "Status :" di kolom H (kanan)
-  const c4F = ws.getCell('H4');
-  c4F.value     = 'Status :';
-  c4F.font      = { bold: true, name: 'Calibri' };
-  c4F.alignment = { horizontal: 'right', vertical: 'middle' };
-
-  // Nilai status di kolom I
-  const statusText = statusFilter === 'OPEN' ? 'Open' : statusFilter === 'CLOSE' ? 'Close' : 'Open/Close';
-  const c4G = ws.getCell('I4');
-  c4G.value     = statusText;
-  c4G.font      = { name: 'Calibri' };
-  c4G.alignment = AL;
+  if (cust.id && cust.id !== '-') {
+    ws.mergeCells('G4:H4');
+    const c4G = ws.getCell('G4');
+    c4G.value = `ID Customer: ${cust.id}`;
+    c4G.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_DARK } };
+    c4G.alignment = AL;
+  }
 
   // ═══════════════════════════════════════════════════════════════
-  // BARIS 5 — ID Customer
+  // BARIS 5 — Spacer
   // ═══════════════════════════════════════════════════════════════
-  ws.getRow(5).height = 20;
-  // Merge B5:E5 — mulai dari B, simetris dengan "Kepada :" di B4
-  ws.mergeCells('B5:E5');
-  const c5B = ws.getCell('B5');
-  c5B.value = `ID Customer: ${cust.id}`;
-  c5B.font  = { bold: true, name: 'Calibri' };
-  c5B.alignment = AL;
+  ws.getRow(5).height = 15;
 
   // ═══════════════════════════════════════════════════════════════
-  // BARIS 6 — Kosong (spacer)
+  // BARIS 6-7 — TITLE & DATE (Kanan)
   // ═══════════════════════════════════════════════════════════════
-  ws.getRow(6).height = 10;
+  ws.getRow(6).height = 24;
+  ws.mergeCells('F6:H6');
+  const c6F = ws.getCell('F6');
+  c6F.value = 'Statement of Accounts';
+  c6F.font  = { bold: true, size: 18, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c6F.alignment = { horizontal: 'right', vertical: 'bottom' };
+
+  ws.getRow(7).height = 15;
+  ws.mergeCells('F7:H7');
+  const c7F = ws.getCell('F7');
+  const dateStr = `As of ${new Date().toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric'})}`;
+  c7F.value = dateStr;
+  c7F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
+  c7F.alignment = { horizontal: 'right', vertical: 'middle' };
+  
+  // Berikan garis bawah pada baris tanggal
+  c7F.border = { bottom: bd('medium', BORDER_CLR) };
 
   // ═══════════════════════════════════════════════════════════════
-  // BARIS 7 — Header tabel
+  // BARIS 8 — Spacer
   // ═══════════════════════════════════════════════════════════════
-  ws.getRow(7).height = 28;
+  ws.getRow(8).height = 10;
+
+  // ═══════════════════════════════════════════════════════════════
+  // BARIS 9 — Header tabel
+  // ═══════════════════════════════════════════════════════════════
+  ws.getRow(9).height = 28;
   const tblHeaders = [
     { col: 'B', label: 'No',           align: AC },
     { col: 'C', label: 'No Invoice',   align: AC },
@@ -175,7 +175,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     { col: 'H', label: 'Jatuh Tempo',  align: AC },
   ];
   tblHeaders.forEach(({ col, label, align }) => {
-    const cell    = ws.getCell(`${col}7`);
+    const cell    = ws.getCell(`${col}9`);
     cell.value    = label;
     cell.font     = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
     cell.fill     = fillSolid(DARK_BLUE);
@@ -184,9 +184,9 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   });
 
   // ═══════════════════════════════════════════════════════════════
-  // BARIS DATA (mulai row 8)
+  // BARIS DATA (mulai row 10)
   // ═══════════════════════════════════════════════════════════════
-  const DATA_START = 8;
+  const DATA_START = 10;
   let   totalNominal = 0;
 
   rows.forEach((r, idx) => {
@@ -261,31 +261,23 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   cellTotEmpty.alignment = AC;
 
   // ═══════════════════════════════════════════════════════════════
-  // Terbilang, Pesan, Hormat kami
+  // Terbilang, Hormat kami
   // ═══════════════════════════════════════════════════════════════
   const terbilangRow = TOTAL_ROW + 2;
   ws.getRow(terbilangRow).height = 20;
-  ws.mergeCells(`B${terbilangRow}:H${terbilangRow}`);
+  ws.mergeCells(`B${terbilangRow}:E${terbilangRow}`);
   const cellTerbilang = ws.getCell(`B${terbilangRow}`);
   cellTerbilang.value     = `Terbilang: ${terbilang(totalNominal)}`;
-  cellTerbilang.font      = { italic: true, size: 10, name: 'Calibri' };
+  cellTerbilang.font      = { italic: true, size: 10, name: 'Calibri', color: { argb: TEXT_GRAY } };
   cellTerbilang.alignment = AL;
 
-  const pesanRow = terbilangRow + 2;
-  ws.getRow(pesanRow).height = 20;
-  ws.mergeCells(`B${pesanRow}:H${pesanRow}`);
-  const cellPesan = ws.getCell(`B${pesanRow}`);
-  cellPesan.value     = 'Mohon segera melakukan pembayaran sebelum jatuh tempo. Terima kasih.';
-  cellPesan.font      = { name: 'Calibri' };
-  cellPesan.alignment = AL;
-
-  const hormatRow = pesanRow + 2;
+  const hormatRow = terbilangRow + 3;
   ws.getRow(hormatRow).height = 20;
-  ws.mergeCells(`F${hormatRow}:H${hormatRow}`);
-  const cellHormat = ws.getCell(`F${hormatRow}`);
+  ws.mergeCells(`G${hormatRow}:H${hormatRow}`);
+  const cellHormat = ws.getCell(`G${hormatRow}`);
   cellHormat.value     = 'Hormat kami,';
-  cellHormat.font      = { name: 'Calibri' };
-  cellHormat.alignment = AC;
+  cellHormat.font      = { size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
+  cellHormat.alignment = { horizontal: 'center', vertical: 'middle' };
 
   // ═══════════════════════════════════════════════════════════════
   // EXPORT

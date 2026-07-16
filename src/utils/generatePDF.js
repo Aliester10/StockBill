@@ -19,126 +19,86 @@ export function generatePDF(company, cust, rows, statusFilter) {
   const contentW = pageW - margin * 2;
 
   let startY = 15;
+  let leftY = startY;
   
-  // 1. TOP RIGHT: LOGO & COMPANY INFO
+  // 1. TOP LEFT: LOGO & COMPANY INFO
   if (company.logo) {
     try {
       const imgProps = doc.getImageProperties(company.logo);
       const imgHeight = 12;
       const imgWidth = (imgProps.width * imgHeight) / imgProps.height;
-      doc.addImage(company.logo, pageW - margin - imgWidth, startY, imgWidth, imgHeight);
-      startY += imgHeight + 4;
+      doc.addImage(company.logo, margin, leftY, imgWidth, imgHeight);
+      leftY += imgHeight + 4;
     } catch (e) {
       console.error('Gagal memuat logo PDF', e);
     }
   }
 
+  const companyNameY = leftY;
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(...TEXT_DARK);
-  doc.text(company.name || 'Company Name', pageW - margin, startY, { align: 'right' });
+  doc.text(company.name || 'Company Name', margin, leftY, { align: 'left' });
+  leftY += 5;
   
-  let y = startY + 5;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...TEXT_GRAY);
   if (company.address) {
-    doc.text(company.address, pageW - margin, y, { align: 'right' });
-    y += 4.5;
+    doc.text(company.address, margin, leftY, { align: 'left' });
+    leftY += 4.5;
   }
   if (company.telp) {
-    doc.text(`Telp: ${company.telp}`, pageW - margin, y, { align: 'right' });
-    y += 4.5;
+    doc.text(`Telp: ${company.telp}`, margin, leftY, { align: 'left' });
+    leftY += 4.5;
   }
   
-  y += 8;
+  // 2. TOP RIGHT: TO (Kepada)
+  const toBlockX = pageW - margin - 60;
+  let rightY = companyNameY - 5;
 
-  // 2. TITLE: Statement of Accounts
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text('To', toBlockX, rightY, { align: 'left' });
+  rightY += 5;
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(cust.name, toBlockX, rightY, { align: 'left' });
+  rightY += 5;
+  
+  if (cust.id && cust.id !== '-') {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(`ID Customer: ${cust.id}`, toBlockX, rightY, { align: 'left' });
+    rightY += 5;
+  }
+
+  // 3. TITLE: Statement of Accounts
+  let titleY = Math.max(leftY, rightY) + 12;
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(...BLACK);
-  doc.text('Statement of Accounts', pageW - margin, y, { align: 'right' });
-  y += 2;
+  doc.text('Statement of Accounts', pageW - margin, titleY, { align: 'right' });
+  titleY += 2;
   
   // Date under title
   const dateStr = `As of ${new Date().toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric'})}`;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...TEXT_GRAY);
-  doc.text(dateStr, pageW - margin, y + 4, { align: 'right' });
+  doc.text(dateStr, pageW - margin, titleY + 4, { align: 'right' });
   
   // Line under title
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.5);
-  doc.line(pageW - margin - 80, y + 6, pageW - margin, y + 6);
-  y += 12;
-
-  // 3. ACCOUNT SUMMARY BLOCK
-  const summaryW = 80;
-  const summaryX = pageW - margin - summaryW;
+  doc.line(pageW - margin - 80, titleY + 6, pageW - margin, titleY + 6);
   
-  doc.setFillColor(240, 240, 240);
-  doc.rect(summaryX, y, summaryW, 7, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(...TEXT_DARK);
-  doc.text('Account Summary', summaryX + 3, y + 5);
-  y += 7;
-
-  // For summary, we can only really show the total invoiced and total balance 
-  // since we don't have separate payments rows.
-  // The user approved the plan, so I'll provide these metrics based on all data passed.
-  const openRows = rows.filter(r => r.status === 'OPEN');
-  const closeRows = rows.filter(r => r.status === 'CLOSE');
-  
-  const totalOpen = openRows.reduce((s, r) => s + r.nominal, 0);
-  const totalClose = closeRows.reduce((s, r) => s + r.nominal, 0);
-  const totalInvoiced = rows.reduce((s, r) => s + r.nominal, 0); 
-  
-  const balanceDue = statusFilter === 'CLOSE' ? totalClose : totalOpen;
-
-  const summaryItems = [
-    { label: 'Total Invoices', value: rows.length.toString() },
-    { label: 'Invoiced Amount', value: `Rp ${formatRp(totalInvoiced)}` },
-    { label: 'Amount Paid', value: `Rp ${formatRp(totalClose)}` },
-    { label: 'Balance Due', value: `Rp ${formatRp(balanceDue)}`, bold: true }
-  ];
-
-  summaryItems.forEach((item, idx) => {
-    if (idx === summaryItems.length - 1) {
-       doc.setDrawColor(200, 200, 200);
-       doc.setLineWidth(0.5);
-       doc.line(summaryX, y, summaryX + summaryW, y);
-       y += 2;
-    }
-    doc.setFont('helvetica', item.bold ? 'bold' : 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(...TEXT_DARK);
-    
-    doc.text(item.label, summaryX + 3, y + 4.5);
-    doc.text(item.value, summaryX + summaryW - 3, y + 4.5, { align: 'right' });
-    y += 7;
-  });
-
-  // 4. LEFT SIDE: TO (Kepada)
-  let leftY = startY + 28;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...TEXT_DARK);
-  doc.text('To', margin, leftY);
-  leftY += 5;
-  
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(cust.name, margin, leftY);
-  leftY += 5;
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text(`ID Customer: ${cust.id}`, margin, leftY);
-
   // Set Y for table
-  y = Math.max(y, leftY) + 12;
+  let y = titleY + 14;
 
   // 5. TABLE
   const COL_W = [10, 22, 40, 32, 24, 24, 36, 18, 20, 24, 17];
@@ -228,7 +188,15 @@ export function generatePDF(company, cust, rows, statusFilter) {
   
   y += terbilangLines.length * 5 + 4;
 
-  // 8. HORMAT KAMI (Removed as requested)
+  // 8. HORMAT KAMI
+  let signY = y + 10;
+  // Let's make sure it doesn't cross the page height if there's very little space.
+  // Actually, autoTable handles pagination, but for signature we just place it below terbilang.
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text('Hormat kami,', pageW - margin - 30, signY, { align: 'center' });
+
   // SAVE
   const safeFileName = cust.name.replace(/[^a-zA-Z0-9_\-. ]/g, '').replace(/\s+/g, '_');
   doc.save(`SOA_${safeFileName}.pdf`);

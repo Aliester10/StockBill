@@ -150,7 +150,7 @@ export function generateStockPDF(productName, data, expandedPOs = {}) {
       halign: 'center'
     },
     columnStyles: {
-      0: { cellWidth: 8, halign: 'center' },
+      0: { cellWidth: 12, halign: 'center' },
       1: { cellWidth: 25 },
       2: { cellWidth: 25 },
       3: { cellWidth: 22, halign: 'right' },

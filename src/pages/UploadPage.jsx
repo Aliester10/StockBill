@@ -73,7 +73,7 @@ export default function UploadPage() {
     const cust = { id: custRows[0].customerId, name: custRows[0].namaCustomer };
     let rows   = custRows;
     if (selStatus === 'OPEN')  rows = custRows.filter(r => r.status === 'OPEN');
-    if (selStatus === 'CLOSE') rows = custRows.filter(r => r.status === 'CLOSE');
+    if (selStatus === 'CLOSE') rows = custRows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS');
 
     if (rows.length === 0) {
       showToast(`Tidak ada tagihan dengan status "${selStatus}" untuk customer ini.`, 'error');
@@ -113,7 +113,7 @@ export default function UploadPage() {
   // Summary customer yang dipilih
   const previewRows  = selCustomer ? tagihanRows.filter(r => r.customerId === selCustomer) : [];
   const previewOpen  = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
-  const previewClose = previewRows.filter(r => r.status === 'CLOSE').reduce((s, r) => s + r.nominal, 0);
+  const previewClose = previewRows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS').reduce((s, r) => s + r.nominal, 0);
 
   return (
     <>
@@ -326,7 +326,7 @@ export default function UploadPage() {
 function SoaPreview({ cust, rows, selStatus, previewOpen, previewClose }) {
   const filteredCount =
     selStatus === 'OPEN'  ? rows.filter(r => r.status === 'OPEN').length  :
-    selStatus === 'CLOSE' ? rows.filter(r => r.status === 'CLOSE').length :
+    selStatus === 'CLOSE' ? rows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS').length :
     rows.length;
 
   const statusLabel =

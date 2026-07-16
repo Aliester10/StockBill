@@ -49,19 +49,19 @@ export default function TagihanPage() {
     mergeUpload, customers, company, showToast, termins
   } = useApp();
 
-  const fileInputRef                       = useRef(null);
-  const [uploading,      setUploading]     = useState(false);
-  const [confirmClear,   setConfirmClear]  = useState(false);
-  const [showForm,       setShowForm]      = useState(false);
-  const [form,           setForm]          = useState(emptyForm());
-  const [editIndex,      setEditIndex]     = useState(null);
-  const [nominalDisplay, setNominalDisplay]= useState('');
-  const [baseNominalDisplay, setBaseNominalDisplay]= useState('');
-  const [selCustomer,    setSelCustomer]   = useState('');
-  const [selStatus,      setSelStatus]     = useState('ALL');
-  const [selWaktu,       setSelWaktu]      = useState('ALL');
-  const [genXls,         setGenXls]        = useState(false);
-  const [genPdf,         setGenPdf]        = useState(false);
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm());
+  const [editIndex, setEditIndex] = useState(null);
+  const [nominalDisplay, setNominalDisplay] = useState('');
+  const [baseNominalDisplay, setBaseNominalDisplay] = useState('');
+  const [selCustomer, setSelCustomer] = useState('');
+  const [selStatus, setSelStatus] = useState('ALL');
+  const [selWaktu, setSelWaktu] = useState('ALL');
+  const [genXls, setGenXls] = useState(false);
+  const [genPdf, setGenPdf] = useState(false);
 
   // ── Import ───────────────────────────────────────────────────
   async function handleFileImport(e) {
@@ -73,8 +73,8 @@ export default function TagihanPage() {
       const rows = await parseExcelFile(file);
       if (!rows.length) { showToast('Tidak ada data ditemukan. Periksa format kolom.', 'error'); return; }
       const existing = new Set(tagihanRows.map(r => r.noInvoice));
-      const newRows  = rows.filter(r => !existing.has(r.noInvoice));
-      const skip     = rows.length - newRows.length;
+      const newRows = rows.filter(r => !existing.has(r.noInvoice));
+      const skip = rows.length - newRows.length;
       if (!newRows.length) { showToast(`Semua ${rows.length} data sudah ada.`, 'info'); return; }
       mergeUpload(newRows, 'append');
       const uniq = new Set(newRows.map(r => r.customerId)).size;
@@ -104,12 +104,12 @@ export default function TagihanPage() {
   }
   function handleCustIdChange(e) {
     const id = e.target.value;
-    const m  = customers.find(c => c.id === id);
+    const m = customers.find(c => c.id === id);
     setForm(p => ({ ...p, customerId: id, namaCustomer: m ? m.name : p.namaCustomer }));
   }
   function handleCustIdInput(e) {
     const id = e.target.value;
-    const m  = customers.find(c => c.id === id);
+    const m = customers.find(c => c.id === id);
     setForm(p => ({ ...p, customerId: id, namaCustomer: m ? m.name : p.namaCustomer }));
   }
   function handleNamaInput(e) {
@@ -124,7 +124,7 @@ export default function TagihanPage() {
     let tName = '';
     let tPercent = '';
     let newNominal = form.nominal;
-    
+
     if (tObj) {
       tName = tObj.name;
       tPercent = tObj.percent || 0;
@@ -132,7 +132,7 @@ export default function TagihanPage() {
         newNominal = String(Math.round(Number(form.baseNominal) * (Number(tPercent) / 100)));
       }
     }
-    
+
     setForm(prev => ({
       ...prev,
       terminId: tId,
@@ -140,7 +140,7 @@ export default function TagihanPage() {
       terminPercent: tPercent,
       nominal: newNominal
     }));
-    
+
     if (newNominal) setNominalDisplay(formatRp(newNominal));
   }
 
@@ -157,12 +157,12 @@ export default function TagihanPage() {
   function handleBaseNominalChange(e) {
     let val = e.target.value.replace(/[^0-9]/g, '');
     setBaseNominalDisplay(formatRp(val));
-    
+
     let newNominal = form.nominal;
     if (form.terminPercent && form.terminPercent !== '') {
-       newNominal = String(Math.round(Number(val) * (Number(form.terminPercent) / 100)));
+      newNominal = String(Math.round(Number(val) * (Number(form.terminPercent) / 100)));
     } else {
-       newNominal = val;
+      newNominal = val;
     }
     setForm(prev => ({ ...prev, baseNominal: val, nominal: newNominal }));
     setNominalDisplay(formatRp(newNominal));
@@ -190,12 +190,12 @@ export default function TagihanPage() {
     setEditIndex(idx); setShowForm(true);
   }
   function handleSave() {
-    if (!form.customerId.trim())   { showToast('Customer ID wajib diisi.', 'error'); return; }
+    if (!form.customerId.trim()) { showToast('Customer ID wajib diisi.', 'error'); return; }
     if (!form.namaCustomer.trim()) { showToast('Nama Customer wajib diisi.', 'error'); return; }
-    if (!form.noInvoice.trim())    { showToast('No Invoice wajib diisi.', 'error'); return; }
-    if (!form.tglInvoice)          { showToast('Tgl Invoice wajib diisi.', 'error'); return; }
-    if (!form.jatuhTempo)          { showToast('Jatuh Tempo wajib diisi.', 'error'); return; }
-    if (!form.nominal)             { showToast('Nominal wajib diisi.', 'error'); return; }
+    if (!form.noInvoice.trim()) { showToast('No Invoice wajib diisi.', 'error'); return; }
+    if (!form.tglInvoice) { showToast('Tgl Invoice wajib diisi.', 'error'); return; }
+    if (!form.jatuhTempo) { showToast('Jatuh Tempo wajib diisi.', 'error'); return; }
+    if (!form.nominal) { showToast('Nominal wajib diisi.', 'error'); return; }
     const row = {
       customerId: form.customerId.trim(), namaCustomer: form.namaCustomer.trim(),
       noInvoice: form.noInvoice.trim(),
@@ -207,7 +207,7 @@ export default function TagihanPage() {
       terminPercent: form.terminPercent || 0, baseNominal: parseNominalInput(form.baseNominal || form.nominal)
     };
     if (editIndex !== null) { updateTagihanRow(editIndex, row); showToast('Data diupdate!', 'success'); }
-    else                    { addTagihanRow(row);               showToast('Data disimpan!', 'success'); }
+    else { addTagihanRow(row); showToast('Data disimpan!', 'success'); }
     setShowForm(false); setForm(emptyForm()); setNominalDisplay(''); setBaseNominalDisplay('');
   }
 
@@ -220,18 +220,18 @@ export default function TagihanPage() {
     }));
     let rows = dynamicRows;
     let cust = { id: '-', name: 'Semua Customer' };
-    
+
     if (selCustomer) {
       rows = rows.filter(r => r.customerId === selCustomer);
       if (rows.length > 0) {
         cust = { id: rows[0].customerId, name: rows[0].namaCustomer };
       }
     }
-    
-    if (selStatus === 'OPEN')  rows = rows.filter(r => r.status === 'OPEN');
+
+    if (selStatus === 'OPEN') rows = rows.filter(r => r.status === 'OPEN');
     if (selStatus === 'CLOSE') rows = rows.filter(r => r.status === 'CLOSE');
     if (selWaktu === 'OVERDUE') rows = rows.filter(r => r.status === 'OPEN' && Number(r.umur) <= 14);
-    
+
     if (!rows.length) { showToast(`Tidak ada tagihan yang sesuai filter.`, 'error'); return null; }
     return { cust, rows };
   }
@@ -252,19 +252,19 @@ export default function TagihanPage() {
     _originalIndex: i,
     umur: r.status === 'OPEN' ? String(hitungUmur(r.jatuhTempo)) : '0'
   }));
-  
+
   let displayed = dynamicRows;
   if (selCustomer) displayed = displayed.filter(r => r.customerId === selCustomer);
   if (selStatus === 'OPEN') displayed = displayed.filter(r => r.status === 'OPEN');
   if (selStatus === 'CLOSE') displayed = displayed.filter(r => r.status === 'CLOSE');
   if (selWaktu === 'OVERDUE') displayed = displayed.filter(r => r.status === 'OPEN' && Number(r.umur) <= 14);
 
-  const totalSemua   = displayed.reduce((s, r) => s + r.nominal, 0);
-  const totalOpen    = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
-  const previewRows  = displayed.filter(r => selCustomer && r.customerId === selCustomer);
-  const previewOpen  = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
+  const totalSemua = displayed.reduce((s, r) => s + r.nominal, 0);
+  const totalOpen = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
+  const previewRows = displayed.filter(r => selCustomer && r.customerId === selCustomer);
+  const previewOpen = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
   const previewClose = previewRows.filter(r => r.status === 'CLOSE').reduce((s, r) => s + r.nominal, 0);
-  const matchedCust  = customers.find(c => c.id === form.customerId);
+  const matchedCust = customers.find(c => c.id === form.customerId);
 
   // ── Render ───────────────────────────────────────────────────
   return (
@@ -277,9 +277,9 @@ export default function TagihanPage() {
           {tagihanRows.length === 0 ? (
             <div className="info-hint">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               Tambahkan data tagihan terlebih dahulu (input manual atau import dari Excel).
             </div>
@@ -477,11 +477,11 @@ export default function TagihanPage() {
               </select>
             </div>
           </div>
-          
+
           {form.terminId && (
             <div className="form-grid-2" style={{ padding: '12px 16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, marginBottom: 20 }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Persen (%) Termin</label>
+                <label>Nominal Termin</label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type="number"
@@ -531,7 +531,7 @@ export default function TagihanPage() {
           {form.status === 'OPEN' && form.jatuhTempo && (
             <div className="umur-hint">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
+                <circle cx="12" cy="12" r="10" /><polyline points="12,6 12,12 16,14" />
               </svg>
               Jatuh Tempo otomatis: <strong>{form.umur} hari</strong> dari tgl jatuh tempo ke hari ini
             </div>
@@ -568,13 +568,13 @@ export default function TagihanPage() {
 
 // ── Sub-komponen ──────────────────────────────────────────────────
 function SoaPreview({ cust, rows, selStatus, previewOpen, previewClose }) {
-  const count = selStatus === 'OPEN'  ? rows.filter(r => r.status === 'OPEN').length
-              : selStatus === 'CLOSE' ? rows.filter(r => r.status === 'CLOSE').length
-              : rows.length;
+  const count = selStatus === 'OPEN' ? rows.filter(r => r.status === 'OPEN').length
+    : selStatus === 'CLOSE' ? rows.filter(r => r.status === 'CLOSE').length
+      : rows.length;
   const label = selStatus === 'OPEN' ? 'Open' : selStatus === 'CLOSE' ? 'Close' : 'Open/Close';
   const total = selStatus === 'CLOSE' ? previewClose
-              : selStatus === 'OPEN'  ? previewOpen
-              : previewOpen + previewClose;
+    : selStatus === 'OPEN' ? previewOpen
+      : previewOpen + previewClose;
   return (
     <div className="soa-preview-box">
       <div className="soa-preview-label">Preview SOA yang akan digenerate:</div>
@@ -615,22 +615,22 @@ function SoaPreview({ cust, rows, selStatus, previewOpen, previewClose }) {
 function IcoExcel() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14,2 14,8 20,8"/>
-      <polyline points="8 13 10.5 17 13 13"/>
-      <line x1="10.5" y1="17" x2="10.5" y2="10"/>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14,2 14,8 20,8" />
+      <polyline points="8 13 10.5 17 13 13" />
+      <line x1="10.5" y1="17" x2="10.5" y2="10" />
     </svg>
   );
 }
 function IcoPDF() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14,2 14,8 20,8"/>
-      <line x1="9" y1="13" x2="9" y2="17"/>
-      <path d="M9 13h2a1 1 0 0 1 0 2H9"/>
-      <line x1="13" y1="13" x2="13" y2="17"/>
-      <path d="M13 13h1.5a1.5 1.5 0 0 1 0 3H13"/>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14,2 14,8 20,8" />
+      <line x1="9" y1="13" x2="9" y2="17" />
+      <path d="M9 13h2a1 1 0 0 1 0 2H9" />
+      <line x1="13" y1="13" x2="13" y2="17" />
+      <path d="M13 13h1.5a1.5 1.5 0 0 1 0 3H13" />
     </svg>
   );
 }
