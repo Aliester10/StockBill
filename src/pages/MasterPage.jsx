@@ -51,7 +51,7 @@ export default function MasterPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th>No</th>
                 <th>Customer ID</th>
                 <th>Nama Customer</th>
                 <th style={{ textAlign: 'center' }}>Total Invoice</th>

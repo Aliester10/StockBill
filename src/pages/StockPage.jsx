@@ -176,6 +176,16 @@ export default function StockPage() {
         >
           {vendors.map(v => <option key={v} value={v}>{v}</option>)}
         </select>
+        <select 
+          className="vendor-select"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="Semua">Status: Semua</option>
+          <option value="GR">Status: GR</option>
+          <option value="Partial">Status: Partial</option>
+          <option value="Belum datang">Status: Belum datang</option>
+        </select>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 
             className="btn btn-excel"
@@ -228,12 +238,12 @@ export default function StockPage() {
               <th>Nama Barang</th>
               <th>Vendor</th>
               <th>No PO</th>
+              <th>No GR</th>
               <th>Order</th>
               <th>Transit</th>
               <th>Datang</th>
               <th>Sisa</th>
               <th>Status</th>
-              <th>No GR</th>
               <th>PIC</th>
               <th>Keterangan</th>
             </tr>
@@ -251,6 +261,7 @@ export default function StockPage() {
                 </td>
                 <td>{row.vendor}</td>
                 <td className="font-medium">{row.noPo}</td>
+                <td className="text-muted">{row.noGr || '-'}</td>
                 <td>{formatNumber(row.order)}</td>
                 <td className="text-blue">{formatNumber(row.transit)}</td>
                 <td className="text-green">{formatNumber(row.datang)}</td>
@@ -260,7 +271,6 @@ export default function StockPage() {
                     {row.status}
                   </span>
                 </td>
-                <td className="text-muted">{row.noGr || '-'}</td>
                 <td className="text-muted">{row.pic || '-'}</td>
                 <td className="text-muted text-sm">{row.keterangan}</td>
               </tr>

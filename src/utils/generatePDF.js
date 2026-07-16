@@ -2,197 +2,204 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { terbilang } from './terbilang';
 
-// ── Warna (r,g,b) ───────────────────────────────────────────────
-const DARK_BLUE  = [31,  56,  100];
-const DARK_RED   = [192,   0,    0];
-const WHITE      = [255, 255,  255];
-const LIGHT_GRAY = [242, 242,  242];
-const TEXT_GRAY  = [100, 116,  139];
 const TEXT_DARK  = [ 30,  41,   59];
+const TEXT_GRAY  = [100, 116,  139];
+const BLACK      = [ 45,  45,   45];
+const WHITE      = [255, 255,  255];
+const LIGHT_GRAY = [245, 245,  245];
 
 function formatRp(num) {
   return new Intl.NumberFormat('id-ID').format(Math.round(num || 0));
 }
 
-/**
- * Generate Statement of Account sebagai PDF.
- *
- * Lebar kolom tabel (mm), total = contentW = 180:
- *   No(12) + No Invoice(36) + Tgl Invoice(28) + Jatuh Tempo(28) + Nominal(48) + Umur(28) = 180
- *
- * Posisi kotak total harus persis sama: mulai di margin (15) lebar 180mm.
- */
 export function generatePDF(company, cust, rows, statusFilter) {
-  const doc      = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageW    = doc.internal.pageSize.getWidth();  // 210
+  const doc      = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const pageW    = 297; // Hardcode for A4 landscape to fix jsPDF pageSize bug
   const margin   = 15;
-  const contentW = pageW - margin * 2;                // 180
+  const contentW = pageW - margin * 2;
 
-  // Lebar tiap kolom — harus konsisten antara tabel dan total bar
-  const COL_W = [10, 32, 26, 26, 30, 36, 20]; // No, NoInv, TglInv, JatuhTempo, Termin, Nominal, Umur
-  // total = 180 ✓
-
-  // X start tiap kolom (absolute dari kiri halaman)
-  const colX = COL_W.reduce((acc, w, i) => {
-    acc.push(i === 0 ? margin : acc[i - 1] + COL_W[i - 1]);
-    return acc;
-  }, []);
-
-  let y = 14;
-
-  // ═══════════════════════════════════════════════════════════════
-  // JUDUL
-  // ═══════════════════════════════════════════════════════════════
+  let startY = 15;
+  
+  // 1. TOP RIGHT: LOGO & COMPANY INFO
   if (company.logo) {
     try {
       const imgProps = doc.getImageProperties(company.logo);
-      const imgHeight = 16;
+      const imgHeight = 12;
       const imgWidth = (imgProps.width * imgHeight) / imgProps.height;
-      doc.addImage(company.logo, (pageW - imgWidth) / 2, y, imgWidth, imgHeight);
-      y += imgHeight + 6;
+      doc.addImage(company.logo, pageW - margin - imgWidth, startY, imgWidth, imgHeight);
+      startY += imgHeight + 4;
     } catch (e) {
       console.error('Gagal memuat logo PDF', e);
     }
   }
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setTextColor(...TEXT_DARK);
-  doc.text('STATEMENT OF ACCOUNT', pageW / 2, y, { align: 'center' });
-  y += 7;
-
+  doc.text(company.name || 'Company Name', pageW - margin, startY, { align: 'right' });
+  
+  let y = startY + 5;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...TEXT_GRAY);
-  doc.text(
-    `${company.name}  |  ${company.address}  |  Telp ${company.telp}`,
-    pageW / 2, y, { align: 'center' }
-  );
+  if (company.address) {
+    doc.text(company.address, pageW - margin, y, { align: 'right' });
+    y += 4.5;
+  }
+  if (company.telp) {
+    doc.text(`Telp: ${company.telp}`, pageW - margin, y, { align: 'right' });
+    y += 4.5;
+  }
+  
   y += 8;
 
-  // Garis pemisah
+  // 2. TITLE: Statement of Accounts
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(...BLACK);
+  doc.text('Statement of Accounts', pageW - margin, y, { align: 'right' });
+  y += 2;
+  
+  // Date under title
+  const dateStr = `As of ${new Date().toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric'})}`;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_GRAY);
+  doc.text(dateStr, pageW - margin, y + 4, { align: 'right' });
+  
+  // Line under title
   doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageW - margin, y);
+  doc.setLineWidth(0.5);
+  doc.line(pageW - margin - 80, y + 6, pageW - margin, y + 6);
+  y += 12;
+
+  // 3. ACCOUNT SUMMARY BLOCK
+  const summaryW = 80;
+  const summaryX = pageW - margin - summaryW;
+  
+  doc.setFillColor(240, 240, 240);
+  doc.rect(summaryX, y, summaryW, 7, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text('Account Summary', summaryX + 3, y + 5);
   y += 7;
 
-  // ═══════════════════════════════════════════════════════════════
-  // KEPADA & STATUS
-  // ═══════════════════════════════════════════════════════════════
-  const boxH     = 10;   // tinggi kotak nama customer
-  const custBoxW = 80;   // lebar kotak nama customer
-  const padding  = 3;    // padding kiri dalam kotak
+  // For summary, we can only really show the total invoiced and total balance 
+  // since we don't have separate payments rows.
+  // The user approved the plan, so I'll provide these metrics based on all data passed.
+  const openRows = rows.filter(r => r.status === 'OPEN');
+  const closeRows = rows.filter(r => r.status === 'CLOSE');
+  
+  const totalOpen = openRows.reduce((s, r) => s + r.nominal, 0);
+  const totalClose = closeRows.reduce((s, r) => s + r.nominal, 0);
+  const totalInvoiced = rows.reduce((s, r) => s + r.nominal, 0); 
+  
+  const balanceDue = statusFilter === 'CLOSE' ? totalClose : totalOpen;
 
-  // Titik awal X yang sama untuk "Kepada :" dan "ID Customer:"
-  // Keduanya dimulai dari margin (kiri halaman)
-  const infoX = margin;
+  const summaryItems = [
+    { label: 'Total Invoices', value: rows.length.toString() },
+    { label: 'Invoiced Amount', value: `Rp ${formatRp(totalInvoiced)}` },
+    { label: 'Amount Paid', value: `Rp ${formatRp(totalClose)}` },
+    { label: 'Balance Due', value: `Rp ${formatRp(balanceDue)}`, bold: true }
+  ];
 
-  // Baris 1: "Kepada :" lalu kotak nama customer
-  const kepY = y + boxH / 2 + 1.8;  // baseline vertikal
+  summaryItems.forEach((item, idx) => {
+    if (idx === summaryItems.length - 1) {
+       doc.setDrawColor(200, 200, 200);
+       doc.setLineWidth(0.5);
+       doc.line(summaryX, y, summaryX + summaryW, y);
+       y += 2;
+    }
+    doc.setFont('helvetica', item.bold ? 'bold' : 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...TEXT_DARK);
+    
+    doc.text(item.label, summaryX + 3, y + 4.5);
+    doc.text(item.value, summaryX + summaryW - 3, y + 4.5, { align: 'right' });
+    y += 7;
+  });
 
-  // Label "Kepada :" — rata kiri mulai dari margin
+  // 4. LEFT SIDE: TO (Kepada)
+  let leftY = startY + 28;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(...TEXT_DARK);
-  doc.text('Kepada :', infoX, kepY);
-
-  // Ukur lebar teks "Kepada :" agar kotak mulai tepat setelah label
-  const kepLabelW = doc.getTextWidth('Kepada :');
-  const custBoxX  = infoX + kepLabelW + 4;  // 4mm jarak label ke kotak
-
-  // Kotak border nama customer
-  doc.setDrawColor(...TEXT_DARK);
-  doc.setLineWidth(0.5);
-  doc.rect(custBoxX, y, custBoxW, boxH);
-
-  // Nama customer RATA KIRI di dalam kotak
+  doc.text('To', margin, leftY);
+  leftY += 5;
+  
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.setTextColor(...DARK_BLUE);
-  doc.text(cust.name, custBoxX + padding, kepY, { align: 'left' });
-
-  // Status di kanan (sejajar vertikal)
-  const statusText   = statusFilter === 'OPEN'  ? 'Open' :
-                       statusFilter === 'CLOSE' ? 'Close' : 'Open/Close';
-  const statusLabelX = pageW - margin - 50;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...TEXT_DARK);
-  doc.text('Status :', statusLabelX, kepY);
+  doc.text(cust.name, margin, leftY);
+  leftY += 5;
+  
   doc.setFont('helvetica', 'normal');
-  doc.text(statusText, statusLabelX + 22, kepY);
+  doc.setFontSize(9);
+  doc.text(`ID Customer: ${cust.id}`, margin, leftY);
 
-  y += boxH + 4;
+  // Set Y for table
+  y = Math.max(y, leftY) + 12;
 
-  // Baris 2: "ID Customer:" — mulai dari margin yang SAMA dengan "Kepada :"
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...TEXT_DARK);
-  doc.text(`ID Customer: ${cust.id}`, infoX, y);
-  y += 9;
-
-  // ═══════════════════════════════════════════════════════════════
-  // TABEL DATA
-  // ═══════════════════════════════════════════════════════════════
-  const totalNominal = rows.reduce((s, r) => s + r.nominal, 0);
-
+  // 5. TABLE
+  const COL_W = [10, 22, 40, 32, 24, 24, 36, 18, 20, 24, 17];
   const tableData = rows.map((r, i) => [
     i + 1,
+    r.customerId,
+    r.namaCustomer,
     r.noInvoice,
     r.tglInvoice,
     r.jatuhTempo,
-    r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-',
     formatRp(r.nominal),
+    r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-',
+    r.status === 'LUNAS' ? 'CLOSE' : r.status,
+    r.tglClose || '-',
     r.umur,
   ]);
 
-  // Simpan tableStartX agar total bar bisa disejajarkan
-  let tableLeft  = margin;
-  let tableRight = margin + contentW;
-
   autoTable(doc, {
     startY      : y,
-    head        : [['No', 'No Invoice', 'Tgl Invoice', 'Tgl Jatuh Tempo', 'Termin', 'Sisa Tagihan', 'Jatuh Tempo']],
+    head        : [['No', 'Customer ID', 'Nama Customer', 'No Invoice', 'Tgl Invoice', 'Tgl Jatuh Tempo', 'Sisa Tagihan', 'Termin', 'Status', 'Tgl Close', 'Jatuh Tempo']],
     body        : tableData,
+    foot        : [[
+      { content: 'TOTAL TAGIHAN', colSpan: 6, styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
+      { content: formatRp(rows.reduce((s, r) => s + r.nominal, 0)), styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
+      { content: '', colSpan: 4, styles: { fillColor: [180, 0, 0] } }
+    ]],
     margin      : { left: margin, right: margin },
     tableWidth  : contentW,
-
+    
     columnStyles: {
       0: { cellWidth: COL_W[0], halign: 'center' },
       1: { cellWidth: COL_W[1], halign: 'center' },
-      2: { cellWidth: COL_W[2], halign: 'center' },
+      2: { cellWidth: COL_W[2], halign: 'left' },
       3: { cellWidth: COL_W[3], halign: 'center' },
       4: { cellWidth: COL_W[4], halign: 'center' },
-      5: { cellWidth: COL_W[5], halign: 'center' }, // Nominal
+      5: { cellWidth: COL_W[5], halign: 'center' },
       6: { cellWidth: COL_W[6], halign: 'center' },
+      7: { cellWidth: COL_W[7], halign: 'center' },
+      8: { cellWidth: COL_W[8], halign: 'center' },
+      9: { cellWidth: COL_W[9], halign: 'center' },
+      10: { cellWidth: COL_W[10], halign: 'center' },
     },
 
     headStyles: {
-      fillColor  : DARK_BLUE,
+      fillColor  : BLACK,
       textColor  : WHITE,
       fontStyle  : 'bold',
-      fontSize   : 10,
+      fontSize   : 9,
       halign     : 'center',
-      cellPadding: { top: 4, bottom: 4, left: 2, right: 2 },
-      lineColor  : [160, 160, 160],
-      lineWidth  : 0.2,
+      cellPadding: { top: 5, bottom: 5, left: 2, right: 2 },
+      lineWidth  : 0,
     },
 
     bodyStyles: {
-      fontSize   : 9.5,
+      fontSize   : 9,
       textColor  : TEXT_DARK,
-      cellPadding: { top: 3.5, bottom: 3.5, left: 2, right: 2 },
-      lineColor  : [210, 210, 210],
-      lineWidth  : 0.2,
+      cellPadding: { top: 4, bottom: 4, left: 2, right: 2 },
+      lineWidth  : 0,
     },
 
     alternateRowStyles: { fillColor: LIGHT_GRAY },
-
-    // Ambil posisi aktual tabel setelah digambar (untuk total bar)
-    didDrawTable(data) {
-      tableLeft  = data.settings.margin.left;
-      tableRight = tableLeft + data.table.width;
-    },
 
     didDrawPage(data) {
       const pageCount = doc.internal.getNumberOfPages();
@@ -200,96 +207,29 @@ export function generatePDF(company, cust, rows, statusFilter) {
       doc.setFontSize(8);
       doc.setTextColor(...TEXT_GRAY);
       doc.text(
-        `Halaman ${data.pageNumber} dari ${pageCount}`,
+        `Page ${data.pageNumber} of ${pageCount}`,
         pageW - margin,
-        doc.internal.pageSize.getHeight() - 8,
+        210 - 8, // Hardcode pageH = 210 for A4 landscape
         { align: 'right' }
       );
     },
   });
 
-  y = doc.lastAutoTable.finalY + 2;
-
-  // ═══════════════════════════════════════════════════════════════
-  // TOTAL BAR — lebar PERSIS sama dengan tabel (margin ~ margin)
-  // ═══════════════════════════════════════════════════════════════
-  const totalBarH  = 11;
-  const totalBarX  = margin;           // sama persis dengan tabel kiri
-  const totalBarW  = contentW;         // sama persis dengan tabel lebar
-
-  // Background merah penuh
-  doc.setFillColor(...DARK_RED);
-  doc.rect(totalBarX, y, totalBarW, totalBarH, 'F');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...WHITE);
-
-  const labelTotal = statusFilter === 'CLOSE'
-    ? 'TOTAL TAGIHAN CLOSE'
-    : 'TOTAL TAGIHAN';
-
-  // Lebar area label = kolom No + No Invoice + Tgl Invoice + Jatuh Tempo + Termin
-  const labelAreaW = COL_W[0] + COL_W[1] + COL_W[2] + COL_W[3] + COL_W[4]; 
-  // Label di tengah area kolom 0–4
-  doc.text(
-    labelTotal,
-    totalBarX + labelAreaW / 2,
-    y + totalBarH / 2 + 1.8,
-    { align: 'center' }
-  );
-
-  // Nominal di tengah area kolom 5 (Nominal)
-  const nominalColX  = totalBarX + labelAreaW;
-  const nominalColW  = COL_W[5]; 
-  doc.text(
-    formatRp(totalNominal),
-    nominalColX + nominalColW / 2,
-    y + totalBarH / 2 + 1.8,
-    { align: 'center' }
-  );
-
-  // Kolom Umur di total bar tetap merah kosong (sudah tercakup rect penuh)
-
-  y += totalBarH + 6;
-
-  // ═══════════════════════════════════════════════════════════════
-  // TERBILANG
-  // ═══════════════════════════════════════════════════════════════
+  y = doc.lastAutoTable.finalY + 8;
+  
+  // 6. TERBILANG
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(9);
   doc.setTextColor(...TEXT_GRAY);
-  // Wrap teks terbilang agar tidak keluar margin
+  const totalNominal = rows.reduce((s, r) => s + r.nominal, 0);
   const terbilangText = `Terbilang: ${terbilang(totalNominal)}`;
   const terbilangLines = doc.splitTextToSize(terbilangText, contentW);
-  doc.text(terbilangLines, margin, y);
+  doc.text(terbilangLines, margin, y, { align: 'left' });
+  
   y += terbilangLines.length * 5 + 4;
 
-  // ═══════════════════════════════════════════════════════════════
-  // PESAN
-  // ═══════════════════════════════════════════════════════════════
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
-  doc.setTextColor(...TEXT_DARK);
-  doc.text(
-    'Mohon segera melakukan pembayaran sebelum jatuh tempo. Terima kasih.',
-    margin, y
-  );
-  y += 12;
-
-  // ═══════════════════════════════════════════════════════════════
-  // HORMAT KAMI
-  // ═══════════════════════════════════════════════════════════════
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
-  doc.setTextColor(...TEXT_DARK);
-  // Posisikan di kolom Umur (kanan) — sejajar dengan kolom terakhir tabel
-  const hormatX = totalBarX + labelAreaW + nominalColW + COL_W[5] / 2;
-  doc.text('Hormat kami,', hormatX, y, { align: 'center' });
-
-  // ═══════════════════════════════════════════════════════════════
+  // 8. HORMAT KAMI (Removed as requested)
   // SAVE
-  // ═══════════════════════════════════════════════════════════════
   const safeFileName = cust.name.replace(/[^a-zA-Z0-9_\-. ]/g, '').replace(/\s+/g, '_');
   doc.save(`SOA_${safeFileName}.pdf`);
 }

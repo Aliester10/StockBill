@@ -11,12 +11,13 @@ export const generateStockExcel = async (data) => {
     { header: 'ID Vendor', key: 'idVendor', width: 15 },
     { header: 'Nama Vendor', key: 'vendor', width: 20 },
     { header: 'Nama Barang', key: 'namaBarang', width: 30 },
+    { header: 'No PO', key: 'noPo', width: 15 },
+    { header: 'No GR', key: 'noGr', width: 15 },
     { header: 'Qty Order', key: 'order', width: 15 },
     { header: 'Qty Transit MKR', key: 'transit', width: 20 },
     { header: 'Qty Datang', key: 'datang', width: 15 },
     { header: 'Sisa', key: 'sisa', width: 15 },
     { header: 'Status', key: 'status', width: 20 },
-    { header: 'No GR', key: 'noGr', width: 15 },
     { header: 'PIC', key: 'pic', width: 20 },
     { header: 'Keterangan', key: 'keterangan', width: 30 },
   ];
@@ -63,12 +64,13 @@ export const generateStockExcel = async (data) => {
       idVendor,
       vendor: item.vendor,
       namaBarang: item.namaBarang,
+      noPo: item.noPo || '-',
+      noGr: item.noGr || '-',
       order: item.order,
       transit: item.transit,
       datang: item.datang,
       sisa: item.sisa,
       status: statusStr,
-      noGr: item.noGr || '-',
       pic: item.pic || '-',
       keterangan: item.keterangan
     });
@@ -84,17 +86,17 @@ export const generateStockExcel = async (data) => {
       cell.alignment = { vertical: 'middle' };
 
       // Number formatting for qty
-      if (colNumber >= 5 && colNumber <= 8) {
+      if (colNumber >= 7 && colNumber <= 10) {
         cell.numFmt = '#,##0';
       }
 
-      // Sisa (Col H = 8) bold
-      if (colNumber === 8) {
+      // Sisa (Col J = 10) bold
+      if (colNumber === 10) {
         cell.font = { bold: true };
       }
 
-      // Status (Col I = 9) color
-      if (colNumber === 9) {
+      // Status (Col K = 11) color
+      if (colNumber === 11) {
         cell.font = { color: { argb: statusColor }, bold: true };
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
       }

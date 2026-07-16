@@ -42,6 +42,21 @@ export function AppProvider({ children }) {
     localStorage.setItem(KEY_TERMINS, JSON.stringify(termins));
   }, [termins]);
 
+  // Migration for old Termin names
+  useEffect(() => {
+    setTermins(prev => {
+      let changed = false;
+      const newTermins = prev.map(t => {
+        if (/^Termin\s+\d+/.test(t.name)) {
+          changed = true;
+          return { ...t, name: t.name.replace('Termin', 'Nominal Termin') };
+        }
+        return t;
+      });
+      return changed ? newTermins : prev;
+    });
+  }, []);
+
   // Persist tagihan setiap kali berubah
   function setTagihanRows(rows) {
     setTagihanRowsRaw(rows);
@@ -91,8 +106,8 @@ export function AppProvider({ children }) {
     } else {
       // append — hindari duplikat berdasarkan noInvoice
       const existing = new Set(tagihanRows.map(r => r.noInvoice));
-      const newRows  = rows.filter(r => !existing.has(r.noInvoice));
-      const merged   = [...tagihanRows, ...newRows].map((r, i) => ({ ...r, no: i + 1 }));
+      const newRows = rows.filter(r => !existing.has(r.noInvoice));
+      const merged = [...tagihanRows, ...newRows].map((r, i) => ({ ...r, no: i + 1 }));
       setTagihanRows(merged);
     }
   }
@@ -137,8 +152,8 @@ function defaultCompany() {
 
 function defaultTermins() {
   return [
-    { id: 't1', name: 'Termin 1', percent: 50 },
-    { id: 't2', name: 'Termin 2', percent: 30 },
-    { id: 't3', name: 'Termin 3', percent: 20 }
+    { id: 't1', name: 'Nominal Termin 1', percent: 50 },
+    { id: 't2', name: 'Nominal Termin 2', percent: 30 },
+    { id: 't3', name: 'Nominal Termin 3', percent: 20 }
   ];
 }

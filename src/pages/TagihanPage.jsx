@@ -304,7 +304,7 @@ export default function TagihanPage() {
                   <label>Filter Status</label>
                   <select className="form-control" value={selStatus} onChange={e => setSelStatus(e.target.value)}>
                     <option value="ALL">Semua (Open &amp; Close)</option>
-                    <option value="OPEN">Open — Belum Close</option>
+                    <option value="OPEN">Open</option>
                     <option value="CLOSE">Close</option>
                   </select>
                 </div>
@@ -357,7 +357,7 @@ export default function TagihanPage() {
                   <th>Customer ID</th><th>Nama Customer</th>
                   <th>No Invoice</th><th>Tgl Invoice</th><th>Tgl Jatuh Tempo</th>
                   <th style={{ width: 100, textAlign: 'right' }}>Sisa Tagihan</th>
-                  <th style={{ width: 100 }}>Termin</th>
+                  <th style={{ width: 100, textAlign: 'center' }}>Termin</th>
                   <th style={{ width: 80, textAlign: 'center' }}>Status</th><th>Tgl Close</th>
                   <th style={{ width: 80 }}>Jatuh Tempo</th>
                   <th style={{ width: 80 }}>Aksi</th>
@@ -376,10 +376,10 @@ export default function TagihanPage() {
                       <td className="center-cell">{r.tglInvoice}</td>
                       <td className="center-cell">{r.jatuhTempo}</td>
                       <td className="nominal-cell">{formatRp(r.nominal)}</td>
-                      <td style={{ fontSize: 13, color: '#64748B' }}>{r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-'}</td>
+                      <td style={{ fontSize: 13, color: '#64748B', textAlign: 'center' }}>{r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-'}</td>
                       <td><span className={r.status === 'OPEN' ? 'status-open' : 'status-close'}>{r.status === 'LUNAS' ? 'CLOSE' : r.status}</span></td>
                       <td className="center-cell">{r.tglClose || '—'}</td>
-                      <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>{r.umur}</td>
+                      <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>{r.umur} Hari</td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
                           <button className="btn btn-sm btn-secondary" onClick={() => openEdit(idx)} title="Edit">✏️</button>
