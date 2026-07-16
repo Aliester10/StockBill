@@ -557,26 +557,25 @@ export default function TagihanPage() {
                 <option value="CLOSE">CLOSE</option>
               </select>
             </div>
-          </div>
-          {form.status === 'CLOSE' && (
-            <div className="form-grid-2">
-              <div className="form-group">
-                <label>Tgl Close</label>
-                <input type="date" name="tglClose" className="form-control" value={form.tglClose} onChange={handleChange} />
-              </div>
-              <div className="form-group">
-                <label>Jatuh Tempo (hari)</label>
-                <input className="form-control" value="0" readOnly
-                  style={{ background: '#F8FAFC', color: 'var(--text-sub)' }} />
-              </div>
+            <div className="form-group">
+              <label>Tgl Close</label>
+              <input type="date" name="tglClose" className="form-control" value={form.tglClose} onChange={handleChange} disabled={form.status !== 'CLOSE'} />
             </div>
-          )}
+          </div>
           {form.status === 'OPEN' && form.jatuhTempo && (
             <div className="umur-hint">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" /><polyline points="12,6 12,12 16,14" />
               </svg>
               Jatuh Tempo otomatis: <strong>{form.umur} hari</strong> dari tgl jatuh tempo ke hari ini
+            </div>
+          )}
+          {form.status === 'CLOSE' && (
+            <div className="umur-hint">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" /><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-1 14.5l-4-4 1.5-1.5 2.5 2.5 5.5-5.5 1.5 1.5z"/>
+              </svg>
+              Jatuh Tempo otomatis menjadi <strong>0 hari</strong> karena status CLOSE
             </div>
           )}
         </Modal>
