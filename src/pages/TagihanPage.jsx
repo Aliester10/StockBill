@@ -39,14 +39,14 @@ const emptyForm = () => ({
   customerId: '', namaCustomer: '', noInvoice: '',
   tglInvoice: '', jatuhTempo: '', nominal: '',
   status: 'OPEN', tglClose: '', umur: '0',
-  terminId: '', terminName: '', terminPercent: '', baseNominal: ''
+  terminName: '', terminNominal: '', baseNominal: ''
 });
 
 export default function TagihanPage() {
   const {
     tagihanRows, addTagihanRow, updateTagihanRow,
     deleteTagihanRow, clearAllTagihan,
-    mergeUpload, customers, company, showToast, termins
+    mergeUpload, customers, company, showToast
   } = useApp();
 
   const fileInputRef = useRef(null);
@@ -57,6 +57,7 @@ export default function TagihanPage() {
   const [editIndex, setEditIndex] = useState(null);
   const [nominalDisplay, setNominalDisplay] = useState('');
   const [baseNominalDisplay, setBaseNominalDisplay] = useState('');
+  const [terminNominalDisplay, setTerminNominalDisplay] = useState('');
   const [selCustomer, setSelCustomer] = useState('');
   const [selStatus, setSelStatus] = useState('ALL');
   const [selWaktu, setSelWaktu] = useState('ALL');
@@ -118,52 +119,26 @@ export default function TagihanPage() {
     setForm(p => ({ ...p, namaCustomer: name, customerId: m ? m.id : p.customerId }));
   }
 
-  function handleTerminChange(e) {
-    const tId = e.target.value;
-    const tObj = termins.find(t => t.id === tId);
-    let tName = '';
-    let tPercent = '';
-    let newNominal = form.nominal;
-
-    if (tObj) {
-      tName = tObj.name;
-      tPercent = tObj.percent || 0;
-      if (form.baseNominal && tPercent > 0) {
-        newNominal = String(Math.round(Number(form.baseNominal) * (Number(tPercent) / 100)));
-      }
-    }
-
-    setForm(prev => ({
-      ...prev,
-      terminId: tId,
-      terminName: tName,
-      terminPercent: tPercent,
-      nominal: newNominal
-    }));
-
-    if (newNominal) setNominalDisplay(formatRp(newNominal));
-  }
-
-  function handlePercentChange(e) {
-    const p = e.target.value;
-    let newNominal = form.nominal;
-    if (form.baseNominal && p !== '') {
-      newNominal = String(Math.round(Number(form.baseNominal) * (Number(p) / 100)));
-    }
-    setForm(prev => ({ ...prev, terminPercent: p, nominal: newNominal }));
-    if (newNominal) setNominalDisplay(formatRp(newNominal));
+  function handleTerminNominalChange(e) {
+    let val = e.target.value.replace(/[^0-9]/g, '');
+    setTerminNominalDisplay(formatRp(val));
+    
+    let tNom = Number(val) || 0;
+    let bNom = Number(form.baseNominal) || 0;
+    let newNominal = String(Math.max(0, bNom - tNom));
+    
+    setForm(prev => ({ ...prev, terminNominal: val, nominal: newNominal }));
+    setNominalDisplay(formatRp(newNominal));
   }
 
   function handleBaseNominalChange(e) {
     let val = e.target.value.replace(/[^0-9]/g, '');
     setBaseNominalDisplay(formatRp(val));
 
-    let newNominal = form.nominal;
-    if (form.terminPercent && form.terminPercent !== '') {
-      newNominal = String(Math.round(Number(val) * (Number(form.terminPercent) / 100)));
-    } else {
-      newNominal = val;
-    }
+    let bNom = Number(val) || 0;
+    let tNom = Number(form.terminNominal) || 0;
+    let newNominal = String(Math.max(0, bNom - tNom));
+
     setForm(prev => ({ ...prev, baseNominal: val, nominal: newNominal }));
     setNominalDisplay(formatRp(newNominal));
   }
@@ -174,7 +149,7 @@ export default function TagihanPage() {
     setForm(p => ({ ...p, nominal: val }));
   }
 
-  function openAdd() { setForm(emptyForm()); setNominalDisplay(''); setBaseNominalDisplay(''); setEditIndex(null); setShowForm(true); }
+  function openAdd() { setForm(emptyForm()); setNominalDisplay(''); setBaseNominalDisplay(''); setTerminNominalDisplay(''); setEditIndex(null); setShowForm(true); }
   function openEdit(idx) {
     const r = tagihanRows[idx];
     setForm({
@@ -182,10 +157,11 @@ export default function TagihanPage() {
       tglInvoice: displayDateToHtml(r.tglInvoice), jatuhTempo: displayDateToHtml(r.jatuhTempo),
       nominal: String(r.nominal), status: r.status,
       tglClose: displayDateToHtml(r.tglClose), umur: String(r.umur),
-      terminId: r.terminId || '', terminName: r.terminName || '',
-      terminPercent: r.terminPercent || '', baseNominal: r.baseNominal || String(r.nominal)
+      terminName: r.terminName || '',
+      terminNominal: r.terminNominal || '', baseNominal: r.baseNominal || String(r.nominal)
     });
     setBaseNominalDisplay(r.baseNominal ? Number(r.baseNominal).toLocaleString('id-ID') : (r.nominal ? Number(r.nominal).toLocaleString('id-ID') : ''));
+    setTerminNominalDisplay(r.terminNominal ? Number(r.terminNominal).toLocaleString('id-ID') : '');
     setNominalDisplay(r.nominal ? Number(r.nominal).toLocaleString('id-ID') : '');
     setEditIndex(idx); setShowForm(true);
   }
@@ -203,12 +179,13 @@ export default function TagihanPage() {
       nominal: parseNominalInput(form.nominal), status: form.status,
       tglClose: form.status === 'CLOSE' ? htmlDateToDisplay(form.tglClose) : '',
       umur: Number(form.umur) || 0,
-      terminId: form.terminId, terminName: form.terminName,
-      terminPercent: form.terminPercent || 0, baseNominal: parseNominalInput(form.baseNominal || form.nominal)
+      terminName: form.terminName,
+      terminNominal: parseNominalInput(form.terminNominal) || 0, 
+      baseNominal: parseNominalInput(form.baseNominal || form.nominal)
     };
     if (editIndex !== null) { updateTagihanRow(editIndex, row); showToast('Data diupdate!', 'success'); }
     else { addTagihanRow(row); showToast('Data disimpan!', 'success'); }
-    setShowForm(false); setForm(emptyForm()); setNominalDisplay(''); setBaseNominalDisplay('');
+    setShowForm(false); setForm(emptyForm()); setNominalDisplay(''); setBaseNominalDisplay(''); setTerminNominalDisplay('');
   }
 
   // ── Generate ─────────────────────────────────────────────────
@@ -468,31 +445,23 @@ export default function TagihanPage() {
                 value={baseNominalDisplay} onChange={handleBaseNominalChange} inputMode="numeric" />
             </div>
             <div className="form-group">
-              <label>Termin</label>
-              <select name="terminId" className="form-control" value={form.terminId || ''} onChange={handleTerminChange}>
-                <option value="">-- Tidak ada --</option>
-                {termins && termins.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              <label>Nama Termin</label>
+              <input name="terminName" className="form-control" placeholder="Cth: Termin 1 (Kosongkan jika tidak ada)" 
+                value={form.terminName || ''} onChange={handleChange} />
             </div>
           </div>
 
-          {form.terminId && (
+          {form.terminName && (
             <div className="form-grid-2" style={{ padding: '12px 16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, marginBottom: 20 }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Nominal Termin</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={form.terminPercent}
-                    readOnly
-                    style={{ background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                    placeholder="0"
-                  />
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>%</span>
-                </div>
+                <label>Nominal Termin (Rp)</label>
+                <input
+                  className="form-control"
+                  value={terminNominalDisplay}
+                  onChange={handleTerminNominalChange}
+                  inputMode="numeric"
+                  placeholder="Cth: 5.000.000"
+                />
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label>Nominal Sisa Tagihan (Rp) <span className="req">*</span></label>

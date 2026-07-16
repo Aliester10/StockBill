@@ -111,7 +111,7 @@ export function generatePDF(company, cust, rows, statusFilter) {
     r.tglInvoice,
     r.jatuhTempo,
     formatRp(r.nominal),
-    r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-',
+    r.terminName || '-',
     r.status === 'LUNAS' ? 'CLOSE' : r.status,
     r.tglClose || '-',
     r.umur,

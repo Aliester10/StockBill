@@ -221,7 +221,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     setDataCell(ws, rowNum, 'E', r.jatuhTempo, bg, { ...AC });
 
     // Kolom F: Termin
-    const tNameFormat = r.terminName ? r.terminName.replace(/Termin\s+/i, '').replace(/\s*\(\d+%\)/, '') : '-';
+    const tNameFormat = r.terminName || '-';
     setDataCell(ws, rowNum, 'F', tNameFormat, bg, { ...AC });
 
     // Kolom G: Nominal

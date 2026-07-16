@@ -4,7 +4,6 @@ const AppContext = createContext(null);
 
 const KEY_COMPANY = 'soa_company';
 const KEY_TAGIHAN = 'soa_tagihan';  // simulasi Spreadsheet di localStorage
-const KEY_TERMINS = 'soa_termins';
 
 export function AppProvider({ children }) {
 
@@ -23,12 +22,6 @@ export function AppProvider({ children }) {
   // ── Customer unik (derived dari tagihanRows) ───────────────────
   const [customers, setCustomers] = useState([]);
 
-  // ── Termins ────────────────────────────────────────────────────
-  const [termins, setTermins] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(KEY_TERMINS)) || defaultTermins(); }
-    catch { return defaultTermins(); }
-  });
-
   // ── Toast ──────────────────────────────────────────────────────
   const [toasts, setToasts] = useState([]);
 
@@ -36,26 +29,6 @@ export function AppProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(KEY_COMPANY, JSON.stringify(company));
   }, [company]);
-
-  // Persist termins
-  useEffect(() => {
-    localStorage.setItem(KEY_TERMINS, JSON.stringify(termins));
-  }, [termins]);
-
-  // Migration for old Termin names
-  useEffect(() => {
-    setTermins(prev => {
-      let changed = false;
-      const newTermins = prev.map(t => {
-        if (/^Termin\s+\d+/.test(t.name)) {
-          changed = true;
-          return { ...t, name: t.name.replace('Termin', 'Nominal Termin') };
-        }
-        return t;
-      });
-      return changed ? newTermins : prev;
-    });
-  }, []);
 
   // Persist tagihan setiap kali berubah
   function setTagihanRows(rows) {
@@ -124,20 +97,20 @@ export function AppProvider({ children }) {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
   }
 
+  function removeToast(id) {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }
+
+  function setTagihanRowsData(rows) {
+    setTagihanRows(rows);
+  }
+
   return (
     <AppContext.Provider value={{
-      // Data
-      tagihanRows, setTagihanRows,
-      addTagihanRow, updateTagihanRow, deleteTagihanRow,
-      mergeUpload, clearAllTagihan,
-      // Derived
-      customers,
-      // Company
       company, setCompany,
-      // Termins
-      termins, setTermins,
-      // UI
-      toasts, showToast,
+      tagihanRows, addTagihanRow, updateTagihanRow, deleteTagihanRow, clearAllTagihan, setTagihanRowsData,
+      customers,
+      toasts, showToast, removeToast
     }}>
       {children}
     </AppContext.Provider>
@@ -147,13 +120,10 @@ export function AppProvider({ children }) {
 export function useApp() { return useContext(AppContext); }
 
 function defaultCompany() {
-  return { name: 'PT XYZ', address: 'Jl. Merdeka No. X8, Medan', telp: '061 654 3210' };
-}
-
-function defaultTermins() {
-  return [
-    { id: 't1', name: '1', percent: 50 },
-    { id: 't2', name: '2', percent: 30 },
-    { id: 't3', name: '3', percent: 20 }
-  ];
+  return {
+    name: 'PT XYZ',
+    address: 'Jl. Merdeka No. X8, Medan',
+    telp: '061 654 3210',
+    logo: '' // bisa diisi base64 logo
+  };
 }
