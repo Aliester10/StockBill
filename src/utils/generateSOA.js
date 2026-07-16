@@ -131,8 +131,8 @@ export async function generateSOA(company, cust, rows, statusFilter, exportColum
   c2B.font  = { bold: true, size: 14, name: 'Calibri', color: { argb: TEXT_DARK } };
   c2B.alignment = AL;
 
-  ws.mergeCells('F2:H2');
-  const c2F = ws.getCell('F2');
+  ws.mergeCells(`${rightLabelStartCol}2:${lastDataCol}2`);
+  const c2F = ws.getCell(`${rightLabelStartCol}2`);
   c2F.value = 'Statement of Accounts';
   c2F.font  = { bold: true, size: 18, name: 'Calibri', color: { argb: TEXT_DARK } };
   c2F.alignment = { horizontal: 'right', vertical: 'bottom' };
@@ -143,8 +143,8 @@ export async function generateSOA(company, cust, rows, statusFilter, exportColum
   c3B.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
   c3B.alignment = AL;
 
-  ws.mergeCells('F3:H3');
-  const c3F = ws.getCell('F3');
+  ws.mergeCells(`${rightLabelStartCol}3:${lastDataCol}3`);
+  const c3F = ws.getCell(`${rightLabelStartCol}3`);
   const dateStr = `As of ${new Date().toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric'})}`;
   c3F.value = dateStr;
   c3F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
@@ -163,23 +163,23 @@ export async function generateSOA(company, cust, rows, statusFilter, exportColum
   // BARIS 5-7 — TO (Kepada) (Kanan, di atas tabel)
   // ═══════════════════════════════════════════════════════════════
   ws.getRow(5).height = 15;
-  ws.mergeCells('F5:J5');
-  const c5F = ws.getCell('F5');
+  ws.mergeCells(`${rightLabelStartCol}5:${lastDataCol}5`);
+  const c5F = ws.getCell(`${rightLabelStartCol}5`);
   c5F.value = 'Kepada :';
   c5F.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
   c5F.alignment = AL;
 
   ws.getRow(6).height = 15;
-  ws.mergeCells('F6:J6');
-  const c6F = ws.getCell('F6');
+  ws.mergeCells(`${rightLabelStartCol}6:${lastDataCol}6`);
+  const c6F = ws.getCell(`${rightLabelStartCol}6`);
   c6F.value = cust.name;
   c6F.font  = { bold: true, size: 11, name: 'Calibri', color: { argb: TEXT_DARK } };
   c6F.alignment = AL;
 
   if (cust.id && cust.id !== '-') {
     ws.getRow(7).height = 15;
-    ws.mergeCells('F7:J7');
-    const c7F = ws.getCell('F7');
+    ws.mergeCells(`${rightLabelStartCol}7:${lastDataCol}7`);
+    const c7F = ws.getCell(`${rightLabelStartCol}7`);
     c7F.value = `ID Customer: ${cust.id}`;
     c7F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_DARK } };
     c7F.alignment = AL;
