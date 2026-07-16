@@ -11,7 +11,7 @@ export default function MasterPage() {
   const summary = customers.map(c => {
     const rows  = tagihanRows.filter(r => r.customerId === c.id);
     const open  = rows.filter(r => r.status === 'OPEN');
-    const close = rows.filter(r => r.status === 'CLOSE');
+    const close = rows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS');
     return {
       ...c,
       totalInvoice  : rows.length,

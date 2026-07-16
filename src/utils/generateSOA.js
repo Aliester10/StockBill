@@ -67,7 +67,7 @@ export async function generateSOA(company, cust, rows, statusFilter) {
     { key: 'B', width: 8    },  // B - No
     { key: 'C', width: 14   },  // C - No Invoice
     { key: 'D', width: 13   },  // D - Tgl Invoice
-    { key: 'E', width: 13   },  // E - Tgl Jatuh Tempo
+    { key: 'E', width: 16   },  // E - Tgl Jatuh Tempo (diperlebar)
     { key: 'F', width: 12   },  // F - Termin
     { key: 'G', width: 16   },  // G - Nominal (Rp)
     { key: 'H', width: 11   },  // H - Jatuh Tempo (hari)
@@ -145,29 +145,29 @@ export async function generateSOA(company, cust, rows, statusFilter) {
   c4B.alignment = AL;
 
   // ═══════════════════════════════════════════════════════════════
-  // BARIS 6-8 — TO (Kepada) (Kanan, di atas tabel)
+  // BARIS 5-7 — TO (Kepada) (Kanan, di atas tabel)
   // ═══════════════════════════════════════════════════════════════
+  ws.getRow(5).height = 15;
+  ws.mergeCells('F5:H5');
+  const c5F = ws.getCell('F5');
+  c5F.value = 'Kepada :';
+  c5F.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c5F.alignment = AL;
+
   ws.getRow(6).height = 15;
   ws.mergeCells('F6:H6');
   const c6F = ws.getCell('F6');
-  c6F.value = 'Kepada :';
-  c6F.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
+  c6F.value = cust.name;
+  c6F.font  = { bold: true, size: 11, name: 'Calibri', color: { argb: TEXT_DARK } };
   c6F.alignment = AL;
 
-  ws.getRow(7).height = 15;
-  ws.mergeCells('F7:H7');
-  const c7F = ws.getCell('F7');
-  c7F.value = cust.name;
-  c7F.font  = { bold: true, size: 11, name: 'Calibri', color: { argb: TEXT_DARK } };
-  c7F.alignment = AL;
-
   if (cust.id && cust.id !== '-') {
-    ws.getRow(8).height = 15; // Shift spacer down if id exists
-    ws.mergeCells('F8:H8');
-    const c8F = ws.getCell('F8');
-    c8F.value = `ID Customer: ${cust.id}`;
-    c8F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_DARK } };
-    c8F.alignment = AL;
+    ws.getRow(7).height = 15;
+    ws.mergeCells('F7:H7');
+    const c7F = ws.getCell('F7');
+    c7F.value = `ID Customer: ${cust.id}`;
+    c7F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_DARK } };
+    c7F.alignment = AL;
   }
 
   // ═══════════════════════════════════════════════════════════════
