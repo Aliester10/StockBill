@@ -408,7 +408,7 @@ export default function TagihanPage() {
                   <th style={{ width: 40 }}>No</th>
                   <th>Customer ID</th><th>Nama Customer</th>
                   <th>No Invoice</th><th>Tgl Invoice</th><th>Tgl Jatuh Tempo</th>
-                  <th style={{ width: 100, textAlign: 'right' }}>Total tagihan</th>
+                  <th style={{ width: 100, textAlign: 'right' }}>Total Tagihan</th>
                   <th style={{ width: 80, textAlign: 'right' }}>Termin 1</th>
                   <th style={{ width: 80, textAlign: 'right' }}>Termin 2</th>
                   <th style={{ width: 80, textAlign: 'right' }}>Termin 3</th>
