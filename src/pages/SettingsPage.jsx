@@ -26,8 +26,8 @@ export default function SettingsPage() {
   function handleSave() {
     if (!name.trim()) { showToast('Nama perusahaan tidak boleh kosong.', 'error'); return; }
     
-    // Validasi termins
-    const validTermins = localTermins.filter(t => t.name.trim() !== '');
+    // Validasi termins dan set name berurut 1, 2, 3...
+    const validTermins = localTermins.map((t, i) => ({ ...t, name: (i + 1).toString() }));
     
     setCompany({ name: name.trim(), address: address.trim(), telp: telp.trim(), logo });
     setTermins(validTermins);
@@ -35,7 +35,7 @@ export default function SettingsPage() {
   }
 
   function addTermin() {
-    setLocalTermins([...localTermins, { id: 't' + Date.now(), name: 'Termin Baru', percent: 0 }]);
+    setLocalTermins([...localTermins, { id: 't' + Date.now(), name: (localTermins.length + 1).toString(), percent: 0 }]);
   }
 
   function updateTermin(index, field, value) {
@@ -146,13 +146,12 @@ export default function SettingsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
             {localTermins.map((t, i) => (
               <div key={t.id} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <input 
+                <div 
                   className="form-control" 
-                  style={{ flex: 2 }}
-                  value={t.name}
-                  onChange={e => updateTermin(i, 'name', e.target.value)}
-                  placeholder="Nama Termin (misal: Termin 1)"
-                />
+                  style={{ flex: 2, background: '#f8fafc', color: '#64748b', cursor: 'not-allowed', display: 'flex', alignItems: 'center' }}
+                >
+                  {i + 1}
+                </div>
                 <div style={{ position: 'relative', flex: 1 }}>
                   <input 
                     type="number"
