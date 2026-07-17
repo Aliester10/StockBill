@@ -283,19 +283,19 @@ export async function generateSOA(company, cust, rows, statusFilter, exportColum
   // ═══════════════════════════════════════════════════════════════
   const terbilangRow = TOTAL_ROW + 2;
   ws.getRow(terbilangRow).height = 20;
-  ws.mergeCells(`B${terbilangRow}:E${terbilangRow}`);
+  ws.mergeCells(`B${terbilangRow}:${lastDataCol}${terbilangRow}`);
   const cellTerbilang = ws.getCell(`B${terbilangRow}`);
   cellTerbilang.value     = `Terbilang: ${terbilang(totalNominal)}`;
   cellTerbilang.font      = { italic: true, size: 10, name: 'Calibri', color: { argb: TEXT_GRAY } };
-  cellTerbilang.alignment = AL;
+  cellTerbilang.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
 
-  const hormatRow = terbilangRow + 3;
+  const hormatRow = terbilangRow + 4;
   ws.getRow(hormatRow).height = 20;
-  ws.mergeCells(`G${hormatRow}:H${hormatRow}`);
-  const cellHormat = ws.getCell(`G${hormatRow}`);
+  ws.mergeCells(`${rightLabelStartCol}${hormatRow}:${lastDataCol}${hormatRow}`);
+  const cellHormat = ws.getCell(`${rightLabelStartCol}${hormatRow}`);
   cellHormat.value     = 'Hormat kami,';
   cellHormat.font      = { size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
-  cellHormat.alignment = { horizontal: 'center', vertical: 'middle' };
+  cellHormat.alignment = { horizontal: 'right', vertical: 'middle' };
 
   // ═══════════════════════════════════════════════════════════════
   // EXPORT
