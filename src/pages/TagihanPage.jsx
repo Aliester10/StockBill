@@ -314,6 +314,15 @@ export default function TagihanPage() {
             </div>
             Filter Data
           </h2>
+          <button 
+            className="btn btn-sm" 
+            onClick={() => { setSelCustomer(''); setSelStatus('ALL'); setSelWaktu('ALL'); setCurrentPage(1); }}
+            style={{ marginLeft: 'auto', background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444' }}
+            title="Reset semua filter"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: 6}}><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+            Reset Filter
+          </button>
         </div>
         <div className="card-body" style={{ position: 'relative', zIndex: 1 }}>
           {tagihanRows.length === 0 ? (
