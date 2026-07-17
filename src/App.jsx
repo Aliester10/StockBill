@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppProvider } from './context/AppContext';
-import Navbar       from './components/Navbar';
+import Sidebar      from './components/Sidebar';
+import Header       from './components/Header';
 import Toast        from './components/Toast';
 import TagihanPage  from './pages/TagihanPage';
 import MasterPage   from './pages/MasterPage';
@@ -10,18 +11,22 @@ import './App.css';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('tagihan');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <>
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="container">
-        {activeTab === 'tagihan'  && <TagihanPage  />}
-        {activeTab === 'rekap'    && <MasterPage   />}
-        {activeTab === 'stock'    && <StockPage    />}
-        {activeTab === 'settings' && <SettingsPage />}
-      </main>
+    <div className={`app-layout ${!isSidebarOpen ? 'sidebar-closed' : ''}`}>
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} isOpen={isSidebarOpen} />
+      <div className="main-content-wrapper">
+        <Header activeTab={activeTab} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <main className="container">
+          {activeTab === 'tagihan'  && <TagihanPage  />}
+          {activeTab === 'rekap'    && <MasterPage   />}
+          {activeTab === 'stock'    && <StockPage    />}
+          {activeTab === 'settings' && <SettingsPage />}
+        </main>
+      </div>
       <Toast />
-    </>
+    </div>
   );
 }
 
