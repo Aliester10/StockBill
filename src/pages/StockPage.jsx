@@ -67,6 +67,7 @@ export default function StockPage() {
   
   // Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({
     tanggal: new Date().toISOString().split('T')[0],
     namaBarang: '',
@@ -116,10 +117,47 @@ export default function StockPage() {
       ]
     };
 
-    setDataList([...dataList, newItem]);
+    if (editId) {
+      setDataList(dataList.map(item => item.id === editId ? { ...item, ...newItem, id: item.id, history: item.history } : item));
+    } else {
+      setDataList([...dataList, newItem]);
+    }
+    
     setIsAddModalOpen(false);
+    setEditId(null);
     setFormData({ tanggal: new Date().toISOString().split('T')[0], namaBarang: '', vendor: '', noPo: '', order: '', transit: '', datang: '', status: 'Belum datang', noGr: '', pic: '', keterangan: '' });
   };
+
+  const openAddData = () => {
+    setEditId(null);
+    setFormData({ tanggal: new Date().toISOString().split('T')[0], namaBarang: '', vendor: '', noPo: '', order: '', transit: '', datang: '', status: 'Belum datang', noGr: '', pic: '', keterangan: '' });
+    setIsAddModalOpen(true);
+  };
+
+  const openEditData = (row) => {
+    setEditId(row.id);
+    setFormData({
+      tanggal: new Date().toISOString().split('T')[0],
+      namaBarang: row.namaBarang,
+      vendor: row.vendor,
+      noPo: row.noPo,
+      order: row.order,
+      transit: row.transit,
+      datang: row.datang,
+      status: row.status,
+      noGr: row.noGr || '',
+      pic: row.pic || '',
+      keterangan: row.keterangan || ''
+    });
+    setIsAddModalOpen(true);
+  };
+
+  const handleDeleteData = (id) => {
+    if (confirm('Apakah Anda yakin ingin menghapus data stok ini?')) {
+      setDataList(dataList.filter(item => item.id !== id));
+    }
+  };
+
 
   // Derive vendors
   const vendors = ['Semua vendor', ...new Set(dataList.map(item => item.vendor))];
@@ -260,7 +298,7 @@ export default function StockPage() {
             <button 
               className="btn btn-primary btn-sm"
               style={{ background: '#4F46E5' }}
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={openAddData}
             >
               <span style={{marginRight: 4}}>+</span> Tambah Data
             </button>
@@ -282,6 +320,7 @@ export default function StockPage() {
               <th>Status</th>
               <th>PIC</th>
               <th>Keterangan</th>
+              <th style={{ width: 80 }}>Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -309,11 +348,21 @@ export default function StockPage() {
                 </td>
                 <td className="center-cell" style={{ color: 'var(--text-sub)' }}>{row.pic || '—'}</td>
                 <td style={{ color: 'var(--text-sub)' }}>{row.keterangan}</td>
+                <td>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                    <button className="btn btn-sm" style={{ padding: '6px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#3B82F6' }} onClick={() => openEditData(row)} title="Edit">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                    <button className="btn btn-sm" style={{ padding: '6px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444' }} onClick={() => handleDeleteData(row.id)} title="Hapus">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {filteredData.length === 0 && (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-sub)' }}>
+                <td colSpan="12" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-sub)' }}>
                   Tidak ada data ditemukan
                 </td>
               </tr>
