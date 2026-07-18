@@ -4,7 +4,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
   const tabs = [
     { key: 'tagihan',  label: 'Data & Generate',  icon: <IconDataGenerate /> },
     { key: 'rekap',    label: 'Rekap Customer',   icon: <IconRekap /> },
-    { key: 'stock',    label: 'Stock Data Card',  icon: <IconStock /> },
+    { key: 'stock',    label: 'Monitoring Barang',  icon: <IconStock /> },
     { key: 'settings', label: 'Pengaturan',       icon: <IconSettings /> },
   ];
 

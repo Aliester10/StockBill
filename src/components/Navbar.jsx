@@ -2,7 +2,7 @@ export default function Navbar({ activeTab, onTabChange }) {
   const tabs = [
     { key: 'tagihan',  label: 'Data & Generate',  icon: '📋' },
     { key: 'rekap',    label: 'Rekap Customer',    icon: '📊' },
-    { key: 'stock',    label: 'Stock Data Card',   icon: '📦' },
+    { key: 'stock',    label: 'Monitoring Barang',   icon: '📦' },
     { key: 'settings', label: 'Pengaturan',        icon: '⚙️' },
   ];
 

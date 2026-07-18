@@ -4,7 +4,7 @@ export default function Header({ activeTab, onToggle }) {
   const titles = {
     tagihan: 'Generate Statement of Account',
     rekap: 'Rekap Customer',
-    stock: 'Stock Data Card',
+    stock: 'Monitoring Barang',
     settings: 'Pengaturan',
   };
 
