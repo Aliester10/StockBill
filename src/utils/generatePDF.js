@@ -114,7 +114,7 @@ export function generatePDF(company, cust, rows, statusFilter, exportColumns = n
     { key: 'termin1', label: 'Termin 1', width: 20, accessor: r => r.termin1 ? formatRp(r.termin1) : '-' },
     { key: 'termin2', label: 'Termin 2', width: 20, accessor: r => r.termin2 ? formatRp(r.termin2) : '-' },
     { key: 'termin3', label: 'Termin 3', width: 20, accessor: r => r.termin3 ? formatRp(r.termin3) : '-' },
-    { key: 'status', label: 'Status', width: 16, accessor: r => r.status === 'LUNAS' ? 'CLOSE' : r.status },
+    { key: 'status', label: 'Status', width: 16, accessor: r => (r.status === 'LUNAS' || r.status === 'CLOSE') ? 'CLOSE' : 'OPEN' },
     { key: 'tglClose', label: 'Tgl Close', width: 18, accessor: r => r.tglClose || '-' },
     { key: 'umur', label: 'Jatuh Tempo', width: 16, accessor: r => r.umur },
   ];
@@ -133,9 +133,10 @@ export function generatePDF(company, cust, rows, statusFilter, exportColumns = n
   const nominalIndex = activeCols.findIndex(c => c.key === 'nominal');
   
   let footRow = [];
+  const getFullValue = (r) => Math.max(Number(r.nominal) || 0, (Number(r.termin1) || 0) + (Number(r.termin2) || 0) + (Number(r.termin3) || 0));
   if (hasNominal) {
     footRow = [{ content: 'TOTAL TAGIHAN AKHIR', colSpan: nominalIndex, styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
-               { content: formatRp(rows.reduce((s, r) => s + r.nominal, 0)), styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } }];
+               { content: formatRp(rows.reduce((s, r) => s + getFullValue(r), 0)), styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } }];
     if (nominalIndex < activeCols.length - 1) {
       footRow.push({ content: '', colSpan: activeCols.length - 1 - nominalIndex, styles: { fillColor: [180, 0, 0] } });
     }
@@ -190,7 +191,8 @@ export function generatePDF(company, cust, rows, statusFilter, exportColumns = n
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(9);
   doc.setTextColor(...TEXT_GRAY);
-  const totalNominal = rows.reduce((s, r) => s + r.nominal, 0);
+  const getFullValue = (r) => Math.max(Number(r.nominal) || 0, (Number(r.termin1) || 0) + (Number(r.termin2) || 0) + (Number(r.termin3) || 0));
+  const totalNominal = rows.reduce((s, r) => s + getFullValue(r), 0);
   const terbilangText = `Terbilang: ${terbilang(totalNominal)}`;
   const terbilangLines = doc.splitTextToSize(terbilangText, contentW);
   doc.text(terbilangLines, margin, y, { align: 'left' });

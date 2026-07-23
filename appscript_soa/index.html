@@ -1,0 +1,3047 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOA Generator</title>
+  <meta name="description" content="Aplikasi pembuat Statement of Account dan monitoring stok barang.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CDN Libraries (client-side export) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+   CSS – identik dengan src/index.css
+═══════════════════════════════════════════════════════════ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --sidebar-bg: #1A1F36;
+      --sidebar-active: linear-gradient(90deg, #4F46E5, #3B82F6);
+      --sidebar-text: #94A3B8;
+      --sidebar-text-active: #FFFFFF;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --border: #E2E8F0;
+      --border-hover: #CBD5E1;
+      --text: #334155;
+      --text-heading: #0F172A;
+      --text-sub: #64748B;
+      --accent: #3B82F6;
+      --dark-red: #E11D48;
+      --success: #10B981;
+      --dark-blue: #1E293B;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, .05);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, .05), 0 2px 4px -1px rgba(0, 0, 0, .03);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased
+    }
+
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+      width: 100%
+    }
+
+    .sidebar {
+      width: 260px;
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      transition: width .3s ease;
+      overflow: hidden;
+      white-space: nowrap
+    }
+
+    .sidebar-closed .sidebar {
+      width: 72px
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 24px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -.02em
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 0 16px;
+      margin-top: 12px;
+      flex: 1
+    }
+
+    .sidebar-tab {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: transparent;
+      border: none;
+      color: var(--sidebar-text);
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      transition: all .2s ease;
+      text-align: left;
+      width: 100%
+    }
+
+    .sidebar-tab:hover {
+      color: var(--sidebar-text-active);
+      background: rgba(255, 255, 255, .05)
+    }
+
+    .sidebar-tab.active {
+      background: var(--sidebar-active);
+      color: var(--sidebar-text-active);
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, .3)
+    }
+
+    .sidebar-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px
+    }
+
+    .sidebar-label {
+      transition: opacity .2s ease
+    }
+
+    .sidebar-closed .sidebar-brand {
+      padding: 24px 0;
+      justify-content: center
+    }
+
+    .sidebar-closed .sidebar-nav {
+      padding: 0 12px
+    }
+
+    .sidebar-closed .sidebar-tab {
+      padding: 12px;
+      justify-content: center
+    }
+
+    .sidebar-closed .sidebar-label {
+      opacity: 0;
+      pointer-events: none;
+      display: none
+    }
+
+    .sidebar-graphic {
+      padding: 24px;
+      transition: opacity .2s ease
+    }
+
+    .sidebar-closed .sidebar-graphic {
+      opacity: 0;
+      pointer-events: none
+    }
+
+    .sidebar-graphic-inner {
+      position: relative;
+      background: linear-gradient(135deg, rgba(79, 70, 229, .1), rgba(59, 130, 246, .2));
+      border-radius: 16px;
+      padding: 32px 20px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, .05)
+    }
+
+    .sg-icon {
+      position: relative;
+      z-index: 2;
+      color: #818CF8;
+      background: rgba(255, 255, 255, .1);
+      padding: 12px;
+      border-radius: 12px;
+      backdrop-filter: blur(4px)
+    }
+
+    .sg-circle {
+      position: absolute;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(79, 70, 229, .4), rgba(59, 130, 246, .1))
+    }
+
+    .sg-circle-1 {
+      width: 100px;
+      height: 100px;
+      top: -20px;
+      right: -20px
+    }
+
+    .sg-circle-2 {
+      width: 60px;
+      height: 60px;
+      bottom: -10px;
+      left: -10px
+    }
+
+    .main-content-wrapper {
+      flex: 1;
+      margin-left: 260px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      transition: margin-left .3s ease
+    }
+
+    .sidebar-closed .main-content-wrapper {
+      margin-left: 72px
+    }
+
+    .main-header {
+      height: 72px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px
+    }
+
+    .menu-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 4px
+    }
+
+    .menu-btn:hover {
+      color: var(--text-heading)
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-heading);
+      letter-spacing: -.01em
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px
+    }
+
+    .header-date {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-sub)
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 100%
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden
+    }
+
+    .card-header {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap
+    }
+
+    .card-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark-blue)
+    }
+
+    .card-body {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px
+    }
+
+    .subtitle {
+      color: var(--text-sub);
+      font-size: 13px;
+      margin-top: 2px;
+      flex-basis: 100%
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      transition: all .18s;
+      white-space: nowrap
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    .btn-primary {
+      background: var(--dark-blue);
+      color: #fff
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #162D55
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff
+    }
+
+    .btn-secondary {
+      background: #E2E8F0;
+      color: var(--text)
+    }
+
+    .btn-secondary:hover {
+      background: #CBD5E1
+    }
+
+    .btn-danger {
+      background: #FEE2E2;
+      color: #B91C1C;
+      border: 1px solid #FECACA
+    }
+
+    .btn-danger:hover {
+      background: #FECACA
+    }
+
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 13px
+    }
+
+    .btn-icon {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-sub);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 14px
+    }
+
+    .btn-icon:hover {
+      background: #F1F5F9;
+      color: var(--text)
+    }
+
+    .btn-excel {
+      background: #16A34A;
+      color: #fff;
+      min-width: 110px;
+      justify-content: center
+    }
+
+    .btn-excel:hover:not(:disabled) {
+      background: #15803D
+    }
+
+    .btn-pdf {
+      background: #DC2626;
+      color: #fff;
+      min-width: 110px;
+      justify-content: center
+    }
+
+    .btn-pdf:hover:not(:disabled) {
+      background: #B91C1C
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, .4);
+      border-top: 2px solid #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 0
+    }
+
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text)
+    }
+
+    .form-control {
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      font-size: 15px;
+      color: var(--text);
+      background: #fff;
+      transition: border-color .15s;
+      outline: none;
+      width: 100%
+    }
+
+    .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12)
+    }
+
+    select.form-control {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px
+    }
+
+    .generate-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      align-items: end
+    }
+
+    .generate-btn-group {
+      display: flex;
+      gap: 8px;
+      grid-column: 1/-1;
+      justify-content: flex-end;
+      margin-top: 8px;
+      flex-wrap: wrap
+    }
+
+    .table-wrapper {
+      overflow-x: auto
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14.5px
+    }
+
+    .data-table th {
+      background: var(--dark-blue);
+      color: #fff;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      white-space: nowrap
+    }
+
+    .data-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none
+    }
+
+    .data-table tr:hover td {
+      background: #F8FAFC
+    }
+
+    .nominal-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums
+    }
+
+    .center-cell {
+      text-align: center
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-sub);
+      padding: 32px !important;
+      font-style: italic
+    }
+
+    .badge {
+      background: #DBEAFE;
+      color: var(--accent);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 12px;
+      font-weight: 600
+    }
+
+    .status-open {
+      background: #FFF7ED;
+      color: #F59E0B;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .status-lunas {
+      background: #ECFDF5;
+      color: #10B981;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .status-close {
+      color: var(--success);
+      font-weight: 700
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px
+    }
+
+    .modal-box {
+      background: #fff;
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 580px;
+      max-height: 90vh;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .modal-header h3 {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--dark-blue)
+    }
+
+    .modal-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px
+    }
+
+    .toast-wrap {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 999
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      animation: fadeIn .25s ease;
+      max-width: 360px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .2)
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    .toast.success {
+      background: var(--success)
+    }
+
+    .toast.error {
+      background: var(--dark-red)
+    }
+
+    .toast.info {
+      background: var(--accent)
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px
+    }
+
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px
+    }
+
+    .req {
+      color: var(--dark-red)
+    }
+
+    .umur-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-sub);
+      padding: 8px 12px;
+      background: #F8FAFC;
+      border-radius: 6px;
+      border: 1px solid var(--border)
+    }
+
+    .info-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      color: var(--text-sub);
+      padding: 14px;
+      background: #F8FAFC;
+      border-radius: 8px;
+      border: 1px solid var(--border)
+    }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 4px;
+      display: block;
+      font-weight: 500
+    }
+
+    .input-autofilled {
+      border-color: var(--accent) !important
+    }
+
+    .input-with-icon {
+      position: relative;
+      display: flex;
+      align-items: center
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      color: var(--text-sub);
+      pointer-events: none
+    }
+
+    .input-with-icon .form-control {
+      padding-left: 36px
+    }
+
+    .card-filter {
+      position: relative;
+      overflow: hidden
+    }
+
+    .card-filter-bg-graphic {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 300px;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden
+    }
+
+    .cfg-blob-1 {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: rgba(129, 140, 248, .1);
+      border-radius: 50%;
+      top: -50px;
+      right: -50px;
+      filter: blur(20px)
+    }
+
+    .cfg-blob-2 {
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      background: rgba(167, 139, 250, .1);
+      border-radius: 50%;
+      bottom: -40px;
+      right: 80px;
+      filter: blur(15px)
+    }
+
+    .cfg-dots {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background-image: radial-gradient(rgba(99, 102, 241, .3) 2px, transparent 2px);
+      background-size: 10px 10px;
+      top: 20px;
+      right: 40px
+    }
+
+    .table-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: #fff;
+      border-top: 1px solid var(--border)
+    }
+
+    .table-footer-text {
+      font-size: 14px;
+      color: var(--text-sub)
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .pagination-controls select {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      margin-right: 16px
+    }
+
+    .page-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s ease
+    }
+
+    .page-btn:hover {
+      background: #F1F5F9;
+      color: var(--text-heading)
+    }
+
+    .page-btn.active {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, .3)
+    }
+
+    .empty-full {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-sub);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px
+    }
+
+    .empty-full p {
+      font-size: 14px
+    }
+
+    .soa-preview-box {
+      border: 1.5px solid #BFDBFE;
+      border-radius: 8px;
+      background: #EFF6FF;
+      padding: 16px 20px
+    }
+
+    .soa-preview-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .soa-preview-content {
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      padding: 14px 18px
+    }
+
+    .soa-preview-row {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap
+    }
+
+    .soa-preview-left,
+    .soa-preview-right {
+      display: flex;
+      flex-direction: column;
+      gap: 6px
+    }
+
+    .soa-preview-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px
+    }
+
+    .soa-key {
+      color: var(--text-sub);
+      min-width: 90px;
+      font-weight: 500
+    }
+
+    .soa-sep {
+      color: var(--text-sub)
+    }
+
+    .soa-val {
+      font-weight: 600;
+      color: var(--text)
+    }
+
+    .soa-val-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--dark-blue);
+      padding: 2px 10px;
+      border: 1.5px solid var(--dark-blue);
+      border-radius: 4px
+    }
+
+    tfoot tr td {
+      border-top: 2px solid var(--border) !important
+    }
+
+    .stock-table-wrapper {
+      overflow-x: auto;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px
+    }
+
+    .stock-table {
+      width: 100%;
+      border-collapse: collapse;
+      white-space: nowrap
+    }
+
+    .stock-table th {
+      background: #E2E8F0;
+      text-align: left;
+      font-weight: 700;
+      color: #1E293B;
+      padding: .75rem 1rem;
+      border-bottom: 2px solid #CBD5E1;
+      text-transform: uppercase;
+      font-size: .75rem;
+      letter-spacing: .5px
+    }
+
+    .stock-table td {
+      padding: 1rem;
+      vertical-align: middle;
+      border-bottom: 1px solid #E2E8F0
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: #2563EB;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: inherit;
+      font-family: inherit;
+      padding: 0;
+      text-align: left
+    }
+
+    .link-btn:hover {
+      color: #1D4ED8
+    }
+
+    .text-blue {
+      color: #2563EB
+    }
+
+    .text-green {
+      color: #16A34A
+    }
+
+    .text-red {
+      color: #DC2626
+    }
+
+    .text-muted {
+      color: #64748B
+    }
+
+    .font-semibold {
+      font-weight: 600
+    }
+
+    .font-medium {
+      font-weight: 500
+    }
+
+    .text-sm {
+      font-size: .875rem
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: .25rem .75rem;
+      border-radius: 9999px;
+      font-size: .75rem;
+      font-weight: 600
+    }
+
+    .status-gr {
+      background: #D1FAE5;
+      color: #065F46
+    }
+
+    .status-partial {
+      background: #FEF3C7;
+      color: #92400E
+    }
+
+    .status-belum-datang {
+      background: #FEE2E2;
+      color: #991B1B
+    }
+
+    .detail-view-container {
+      background: #FFFFFF;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .1)
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: .9rem;
+      padding: 0
+    }
+
+    .detail-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem
+    }
+
+    .detail-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: .25rem;
+      color: #0F172A
+    }
+
+    .export-btn {
+      background: white;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      color: #0F172A;
+      font-weight: 500;
+      padding: .5rem 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 3rem
+    }
+
+    .stat-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem
+    }
+
+    .stat-label {
+      font-size: .875rem;
+      color: #64748B;
+      margin-bottom: .5rem
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700
+    }
+
+    .stat-desc {
+      font-size: .875rem;
+      color: #64748B;
+      margin-top: .25rem
+    }
+
+    .history-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #0F172A
+    }
+
+    .po-history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem
+    }
+
+    .po-card {
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      overflow: hidden
+    }
+
+    .po-card-header {
+      background: #F8FAFC;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer
+    }
+
+    .po-card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+      color: #0F172A
+    }
+
+    .flex-align-center {
+      display: flex;
+      align-items: center
+    }
+
+    .gap-2 {
+      gap: .5rem
+    }
+
+    .po-card-body {
+      padding: 0;
+      border-top: 1px solid #E2E8F0
+    }
+
+    .history-table {
+      margin: 0;
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    .history-table th {
+      background: white;
+      border-bottom: 1px solid #E2E8F0;
+      color: #64748B;
+      font-weight: 500;
+      padding: 1rem 1.5rem;
+      text-align: left
+    }
+
+    .history-table td {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #E2E8F0
+    }
+
+    .po-card-footer {
+      padding: .75rem 1.5rem;
+      background: #F8FAFC;
+      font-weight: 500;
+      font-size: .85rem;
+      color: #0F172A;
+      border-top: 1px solid #E2E8F0
+    }
+
+    .uppercase {
+      text-transform: uppercase
+    }
+
+    .mt-2 {
+      margin-top: .5rem
+    }
+
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      gap: 16px
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(79, 70, 229, .2);
+      border-top: 3px solid #4F46E5;
+      border-radius: 50%;
+      animation: spin .8s linear infinite
+    }
+
+    @media(max-width:700px) {
+      .generate-form {
+        grid-template-columns: 1fr
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .form-grid-2,
+      .form-grid-3 {
+        grid-template-columns: 1fr
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <p style="color:var(--text-sub);font-size:14px">Memuat aplikasi...</p>
+  </div>
+
+  <!-- APP LAYOUT -->
+  <div class="app-layout" id="app" style="display:none">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14,2 14,8 20,8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+        <span class="sidebar-label">SOA Generator</span>
+      </div>
+      <nav class="sidebar-nav" id="sidebar-nav"></nav>
+      <div class="sidebar-graphic">
+        <div class="sidebar-graphic-inner">
+          <div class="sg-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+            </svg>
+          </div>
+          <div class="sg-circle sg-circle-1"></div>
+          <div class="sg-circle sg-circle-2"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content-wrapper">
+      <header class="main-header">
+        <div class="header-left">
+          <button class="menu-btn" id="menu-toggle" title="Toggle Sidebar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <h1 class="header-title" id="header-title">SOA Generator</h1>
+        </div>
+        <div class="header-right">
+          <div class="header-date">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span id="header-date"></span>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <div id="page-tagihan" class="page"></div>
+        <div id="page-rekap" class="page" style="display:none"></div>
+        <div id="page-stock" class="page" style="display:none"></div>
+        <div id="page-settings" class="page" style="display:none"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL CONTAINER -->
+  <div id="modal-container"></div>
+
+  <!-- TOAST -->
+  <div class="toast-wrap" id="toast-wrap"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════ -->
+  <script>
+    'use strict';
+
+    // ─────────────────────────────────────────────────────────────────
+    //  APP STATE
+    // ─────────────────────────────────────────────────────────────────
+    var State = {
+      activeTab: 'tagihan',
+      sidebarOpen: true,
+      tagihanRows: [],
+      stockData: [],
+      company: { name: 'PT XYZ', address: 'Jl. Merdeka No. X8, Medan', telp: '061 654 3210', logo: '' },
+      // Tagihan page state
+      tagihan: {
+        selCustomer: '', selStatus: 'ALL', selWaktu: 'ALL',
+        pageSize: 5, currentPage: 1,
+        exportColumns: {
+          no: true, customerId: true, namaCustomer: true, noInvoice: true, tglInvoice: true,
+          jatuhTempo: true, nominal: true, termin1: true, termin2: true, termin3: true, status: true, tglClose: true, umur: true
+        }
+      },
+      // Stock page state
+      stock: {
+        searchTerm: '', selectedVendor: 'Semua vendor', statusFilter: 'Semua',
+        selectedProductName: null
+      }
+    };
+
+    // ─────────────────────────────────────────────────────────────────
+    //  TABS CONFIG
+    // ─────────────────────────────────────────────────────────────────
+    var TABS = [
+      {
+        key: 'tagihan', label: 'Data & Generate',
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>'
+      },
+      {
+        key: 'rekap', label: 'Rekap Customer',
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
+      },
+
+      {
+        key: 'settings', label: 'Pengaturan',
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
+      },
+    ];
+
+    var PAGE_TITLES = { tagihan: 'Generate Statement of Account', rekap: 'Rekap Customer', stock: 'Monitoring Barang', settings: 'Pengaturan' };
+
+    // ─────────────────────────────────────────────────────────────────
+    //  UTILITIES
+    // ─────────────────────────────────────────────────────────────────
+    function formatRp(num) { return new Intl.NumberFormat('id-ID').format(Math.round(num || 0)); }
+    function formatNum(num) { return new Intl.NumberFormat('id-ID').format(Math.round(num || 0)); }
+
+    function htmlDateToDisplay(val) {
+      if (!val) return '';
+      var p = val.split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : val;
+    }
+    function displayDateToHtml(val) {
+      if (!val) return '';
+      var p = val.split('/');
+      if (p.length !== 3) return val;
+      return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0');
+    }
+    function hitungUmur(jatuhTempoStr) {
+      if (!jatuhTempoStr) return '-';
+      try {
+        var tgl;
+        if (String(jatuhTempoStr).indexOf('-') > -1) {
+          var p = String(jatuhTempoStr).split('-');
+          tgl = new Date(+p[0], +p[1] - 1, +p[2]);
+        } else {
+          var p = String(jatuhTempoStr).split('/');
+          tgl = new Date(+p[2], +p[1] - 1, +p[0]);
+        }
+        if (isNaN(tgl.getTime())) return '-';
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        return Math.floor((tgl - today) / 86400000);
+      } catch (e) { return '-'; }
+    }
+    function parseNominalInput(str) {
+      if (!str) return 0;
+      return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || 0;
+    }
+    function escHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function getCustomers() {
+      var map = new Map();
+      State.tagihanRows.forEach(function (r) {
+        var cid = String(r.customerId);
+        if (cid && !map.has(cid)) map.set(cid, r.namaCustomer || r.customerId);
+      });
+      return Array.from(map.entries()).map(function (e) { return { id: e[0], name: e[1] }; });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  TOAST
+    // ─────────────────────────────────────────────────────────────────
+    function showToast(msg, type) {
+      type = type || 'info';
+      var wrap = document.getElementById('toast-wrap');
+      var el = document.createElement('div');
+      el.className = 'toast ' + type;
+      el.textContent = msg;
+      wrap.appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3500);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  ROUTING / NAVIGATION
+    // ─────────────────────────────────────────────────────────────────
+    function setTab(key) {
+      State.activeTab = key;
+      // Update sidebar
+      document.querySelectorAll('.sidebar-tab').forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.key === key);
+      });
+      // Update header title
+      document.getElementById('header-title').textContent = PAGE_TITLES[key] || 'Dashboard';
+      // Show/hide pages
+      ['tagihan', 'rekap', 'stock', 'settings'].forEach(function (k) {
+        var el = document.getElementById('page-' + k);
+        if (el) el.style.display = (k === key ? '' : 'none');
+      });
+      // Render page content
+      if (key === 'tagihan') renderTagihanPage();
+      else if (key === 'rekap') renderRekapPage();
+      else if (key === 'stock') renderStockPage();
+      else if (key === 'settings') renderSettingsPage();
+    }
+
+    function renderSidebar() {
+      var nav = document.getElementById('sidebar-nav');
+      nav.innerHTML = TABS.map(function (t) {
+        return '<button class="sidebar-tab' + (State.activeTab === t.key ? ' active' : '') + '" data-key="' + t.key + '" onclick="setTab(\'' + t.key + '\')">' +
+          '<span class="sidebar-icon">' + t.icon + '</span>' +
+          '<span class="sidebar-label">' + escHtml(t.label) + '</span>' +
+          '</button>';
+      }).join('');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  MODAL HELPER
+    // ─────────────────────────────────────────────────────────────────
+    function openModal(opts) {
+      // opts: { title, bodyHtml, footerHtml, id, onClose }
+      var c = document.getElementById('modal-container');
+      var id = opts.id || 'modal-main';
+      var footer = opts.footerHtml !== undefined ? opts.footerHtml :
+        '<button class="btn btn-secondary" onclick="closeModal(\'' + id + '\')">Batal</button>' +
+        '<button class="btn btn-primary" id="modal-save-btn">Simpan</button>';
+      c.innerHTML =
+        '<div class="modal-overlay" id="' + id + '" onclick="if(event.target===this)closeModal(\'' + id + '\')">' +
+        '<div class="modal-box">' +
+        '<div class="modal-header">' +
+        '<h3>' + escHtml(opts.title || '') + '</h3>' +
+        '<button class="btn-icon" onclick="closeModal(\'' + id + '\')">✕</button>' +
+        '</div>' +
+        '<div class="modal-body" id="modal-body">' + opts.bodyHtml + '</div>' +
+        (footer ? '<div class="modal-footer">' + footer + '</div>' : '') +
+        '</div>' +
+        '</div>';
+    }
+    function closeModal(id) {
+      var c = document.getElementById('modal-container');
+      if (id) { var el = document.getElementById(id); if (el) el.remove(); }
+      else c.innerHTML = '';
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  BACKEND COMMUNICATION (google.script.run wrapper)
+    // ─────────────────────────────────────────────────────────────────
+    var _isMock = typeof google === 'undefined';
+
+    function runServer(fn, args, onSuccess, onError) {
+      if (_isMock) {
+        // In dev/preview mode — use localStorage
+        onSuccess(mockServer(fn, args));
+        return;
+      }
+      var call = google.script.run.withSuccessHandler(onSuccess).withFailureHandler(function (e) {
+        console.error(e);
+        if (onError) onError(e); else showToast('Error: ' + e.message, 'error');
+      });
+      call[fn].apply(call, args || []);
+    }
+
+    // Mock server for local testing (localStorage-based)
+    function mockServer(fn, args) {
+      var LS_TAGIHAN = 'soa_tagihan', LS_STOCK = 'soa_stock', LS_SETTINGS = 'soa_company';
+      if (fn === 'getTagihanRows') return JSON.parse(localStorage.getItem(LS_TAGIHAN) || '[]');
+      if (fn === 'saveTagihanRows') { localStorage.setItem(LS_TAGIHAN, JSON.stringify(args[0])); return true; }
+      if (fn === 'getStockData') return JSON.parse(localStorage.getItem(LS_STOCK) || '[]');
+      if (fn === 'saveStockData') { localStorage.setItem(LS_STOCK, JSON.stringify(args[0])); return true; }
+      if (fn === 'getSettings') return JSON.parse(localStorage.getItem(LS_SETTINGS) || 'null') || { name: 'PT XYZ', address: 'Jl. Merdeka No. X8, Medan', telp: '061 654 3210', logo: '' };
+      if (fn === 'saveSettings') { localStorage.setItem(LS_SETTINGS, JSON.stringify(args[0])); return true; }
+      if (fn === 'initSheets') return true;
+      return null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  DATA PERSISTENCE
+    // ─────────────────────────────────────────────────────────────────
+    function persistTagihan() {
+      runServer('saveTagihanRows', [State.tagihanRows], function () { }, function (e) { console.error('Save tagihan failed', e); });
+    }
+    function persistStock() {
+      runServer('saveStockData', [State.stockData], function () { }, function (e) { console.error('Save stock failed', e); });
+    }
+    function persistSettings() {
+      runServer('saveSettings', [State.company], function () { }, function (e) { console.error('Save settings failed', e); });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  TERBILANG
+    // ─────────────────────────────────────────────────────────────────
+    var _satuan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas', 'dua belas', 'tiga belas', 'empat belas', 'lima belas', 'enam belas', 'tujuh belas', 'delapan belas', 'sembilan belas'];
+    var _puluhan = ['', '', 'dua puluh', 'tiga puluh', 'empat puluh', 'lima puluh', 'enam puluh', 'tujuh puluh', 'delapan puluh', 'sembilan puluh'];
+    function _convertNum(n) {
+      if (n < 20) return _satuan[n];
+      if (n < 100) return _puluhan[Math.floor(n / 10)] + (n % 10 ? ' ' + _satuan[n % 10] : '');
+      if (n < 200) return 'seratus' + (n % 100 ? ' ' + _convertNum(n % 100) : '');
+      if (n < 1000) return _satuan[Math.floor(n / 100)] + ' ratus' + (n % 100 ? ' ' + _convertNum(n % 100) : '');
+      if (n < 2000) return 'seribu' + (n % 1000 ? ' ' + _convertNum(n % 1000) : '');
+      if (n < 1e6) return _convertNum(Math.floor(n / 1000)) + ' ribu' + (n % 1000 ? ' ' + _convertNum(n % 1000) : '');
+      if (n < 1e9) return _convertNum(Math.floor(n / 1e6)) + ' juta' + (n % 1e6 ? ' ' + _convertNum(n % 1e6) : '');
+      if (n < 1e12) return _convertNum(Math.floor(n / 1e9)) + ' miliar' + (n % 1e9 ? ' ' + _convertNum(n % 1e9) : '');
+      return _convertNum(Math.floor(n / 1e12)) + ' triliun' + (n % 1e12 ? ' ' + _convertNum(n % 1e12) : '');
+    }
+    function terbilang(angka) {
+      angka = Math.round(Math.abs(angka));
+      if (angka === 0) return 'Nol';
+      return _convertNum(angka).split(' ').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ') + ' Rupiah';
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  PARSE EXCEL (SheetJS)
+    // ─────────────────────────────────────────────────────────────────
+    function parseExcelFile(file, callback) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          var data = new Uint8Array(e.target.result);
+          var wb = XLSX.read(data, { type: 'array', raw: true, cellDates: false });
+          var sheet = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+          var headerRow = 3;
+          for (var i = 0; i < Math.min(rows.length, 10); i++) {
+            if (rows[i].map(String).join('|').toLowerCase().includes('invoice')) { headerRow = i; break; }
+          }
+          var result = [];
+          for (var j = headerRow + 1; j < rows.length; j++) {
+            var r = rows[j];
+            if (!r || r.length === 0) continue;
+            var noVal = r[0];
+            if (noVal === '' || noVal === null || noVal === undefined) continue;
+            var noNum = typeof noVal === 'number' ? noVal : Number(String(noVal).trim());
+            if (isNaN(noNum) || noNum <= 0) continue;
+            result.push({
+              no: noNum, customerId: String(r[1] || '').trim(), namaCustomer: String(r[2] || '').trim(),
+              noInvoice: String(r[3] || '').trim(), tglInvoice: _excelDate(r[4]), jatuhTempo: _excelDate(r[5]),
+              nominal: _parseNominal(r[6]), status: String(r[7] || '').trim().toUpperCase(),
+              tglClose: _excelDate(r[8]), umur: _parseUmur(r[9]),
+              termin1: 0, termin2: 0, termin3: 0, baseNominal: _parseNominal(r[6])
+            });
+          }
+          callback(null, result);
+        } catch (err) { callback(err); }
+      };
+      reader.onerror = function (err) { callback(err); };
+      reader.readAsArrayBuffer(file);
+    }
+    function _excelDate(val) {
+      if (val === '' || val === null || val === undefined) return '';
+      if (typeof val === 'string') {
+        var s = val.trim(); if (!s) return '';
+        if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) {
+          var p = s.split('/'); var y = p[2].length === 2 ? '20' + p[2] : p[2];
+          return p[0].padStart(2, '0') + '/' + p[1].padStart(2, '0') + '/' + y;
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { var q = s.split('-'); return q[2] + '/' + q[1] + '/' + q[0]; }
+        return s;
+      }
+      if (typeof val === 'number') {
+        var d = XLSX.SSF.parse_date_code(val);
+        if (d) return String(d.d).padStart(2, '0') + '/' + String(d.m).padStart(2, '0') + '/' + d.y;
+      }
+      if (val instanceof Date) {
+        return String(val.getDate()).padStart(2, '0') + '/' + (val.getMonth() + 1).toString().padStart(2, '0') + '/' + val.getFullYear();
+      }
+      return String(val).trim();
+    }
+    function _parseNominal(val) {
+      if (val === '' || val === null || val === undefined) return 0;
+      if (typeof val === 'number') return Math.round(val);
+      var s = String(val).trim(); if (!s) return 0;
+      var hasDot = s.includes('.'), hasComma = s.includes(','), cleaned;
+      if (hasDot && hasComma) {
+        cleaned = s.lastIndexOf('.') > s.lastIndexOf(',') ? s.replace(/,/g, '') : s.replace(/\./g, '').replace(',', '.');
+      } else if (hasDot && !hasComma) {
+        var parts = s.split('.');
+        cleaned = (parts.length > 2 || (parts[parts.length - 1].length === 3)) ? s.replace(/\./g, '') : s;
+      } else if (!hasDot && hasComma) {
+        var cparts = s.split(',');
+        cleaned = (cparts.length > 2 || (cparts[cparts.length - 1].length === 3)) ? s.replace(/,/g, '') : s.replace(',', '.');
+      } else { cleaned = s.replace(/[^0-9]/g, ''); }
+      return parseFloat(cleaned) || 0;
+    }
+    function _parseUmur(val) {
+      if (val === '' || val === null || val === undefined) return 0;
+      if (typeof val === 'number') return Math.round(val);
+      var n = Number(String(val).replace(/[^0-9-]/g, ''));
+      return isNaN(n) ? 0 : n;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  GENERATE SOA (Excel via ExcelJS — loaded as UMD below)
+    // ─────────────────────────────────────────────────────────────────
+    async function generateSOA(company, cust, rows, statusFilter, exportCols) {
+      var cols = exportCols || { no: true, customerId: true, namaCustomer: true, noInvoice: true, tglInvoice: true, jatuhTempo: true, nominal: true, termin1: true, termin2: true, termin3: true, status: true, tglClose: true, umur: true };
+      
+      var DARK_BLUE  = 'FF1F3864';
+      var TABLE_HEAD = 'FF2D2D2D'; 
+      var DARK_RED   = 'FFC00000';
+      var WHITE      = 'FFFFFFFF';
+      var LIGHT_GRAY = 'FFF2F2F2';
+      var BORDER_CLR = 'FFD0D0D0';
+      var TEXT_DARK  = 'FF1E293B';
+      var TEXT_GRAY  = 'FF64748B';
+
+      var bd = function(style, color) { return { style: style || 'thin', color: { argb: color || BORDER_CLR } }; };
+      var borderAll = function(style) { var s = bd(style || 'thin'); return { top: s, left: s, bottom: s, right: s }; };
+      var borderTable = function() { return borderAll('thin'); };
+      var AC = { horizontal: 'center', vertical: 'middle', wrapText: false };
+      var AR = { horizontal: 'right',  vertical: 'middle' };
+      var AL = { horizontal: 'left',   vertical: 'middle' };
+      var fillSolid = function(argb) { return { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } }; };
+
+      var ALL_DEFS = [
+        { key: 'no', label: 'No', width: 8, align: AC, render: function(r, i) { return i + 1; } },
+        { key: 'customerId', label: 'Customer ID', width: 15, align: AC, render: function(r) { return r.customerId; } },
+        { key: 'namaCustomer', label: 'Nama Customer', width: 25, align: AL, render: function(r) { return r.namaCustomer; } },
+        { key: 'noInvoice', label: 'No Invoice', width: 14, align: AC, render: function(r) { return r.noInvoice; } },
+        { key: 'tglInvoice', label: 'Tgl Invoice', width: 13, align: AC, render: function(r) { return r.tglInvoice; } },
+        { key: 'jatuhTempo', label: 'Tgl Jatuh Tempo', width: 16, align: AC, render: function(r) { return r.jatuhTempo; } },
+        { key: 'nominal', label: 'Total Tagihan', width: 16, align: AR, isNominal: true, isNum: true, render: function(r) { return r.nominal; } },
+        { key: 'termin1', label: 'Termin 1', width: 13, align: AR, isNum: true, render: function(r) { return r.termin1 || 0; } },
+        { key: 'termin2', label: 'Termin 2', width: 13, align: AR, isNum: true, render: function(r) { return r.termin2 || 0; } },
+        { key: 'termin3', label: 'Termin 3', width: 13, align: AR, isNum: true, render: function(r) { return r.termin3 || 0; } },
+        { key: 'status', label: 'Status', width: 12, align: AC, render: function(r) { return (r.status === 'LUNAS' || r.status === 'CLOSE') ? 'CLOSE' : 'OPEN'; } },
+        { key: 'tglClose', label: 'Tgl Close', width: 13, align: AC, render: function(r) { return r.tglClose || '-'; } },
+        { key: 'umur', label: 'Jatuh Tempo (hari)', width: 13, align: AC, render: function(r) { return r.umur; } },
+      ];
+
+      var activeDefs = ALL_DEFS.filter(function(d) { return cols[d.key]; });
+      var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      var lastDataCol = alphabet[activeDefs.length];
+      var rightLabelStartCol = activeDefs.length >= 3 ? alphabet[activeDefs.length - 2] : alphabet[1];
+
+      var wb    = new ExcelJS.Workbook();
+      wb.creator  = 'SOA Generator';
+      wb.created  = new Date();
+
+      var ws = wb.addWorksheet('Statement', {
+        views       : [{ showGridLines: false }],
+        pageSetup   : { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1 },
+      });
+
+      var excelCols = [{ key: 'A', width: 3.5 }];
+      activeDefs.forEach(function(def, i) {
+        def.colIdx = alphabet[i + 1];
+        excelCols.push({ key: def.colIdx, width: def.width });
+      });
+      excelCols.push({ key: alphabet[activeDefs.length + 1], width: 3.5 });
+      ws.columns = excelCols;
+
+      var hasLogo = false;
+      var logoHeight = 40;
+      if (company.logo) {
+        try {
+          var match = company.logo.match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/);
+          if (match) {
+            var ext = match[1];
+            if (ext === 'jpg') ext = 'jpeg';
+            var imageId = wb.addImage({
+              base64: company.logo,
+              extension: ext,
+            });
+            var imgH = 40;
+            var imgW = 100;
+            logoHeight = imgH;
+            ws.addImage(imageId, {
+              tl: { col: 1, row: 0 },
+              ext: { width: imgW, height: imgH },
+            });
+            hasLogo = true;
+          }
+        } catch (e) { console.error(e); }
+      }
+
+      ws.getRow(1).height = hasLogo ? logoHeight + 5 : 10;
+
+      ws.getRow(2).height = 18;
+      var c2B = ws.getCell('B2');
+      c2B.value = company.name || 'Company Name';
+      c2B.font  = { bold: true, size: 14, name: 'Calibri', color: { argb: TEXT_DARK } };
+      c2B.alignment = AL;
+
+      ws.mergeCells(rightLabelStartCol + '2:' + lastDataCol + '2');
+      var c2F = ws.getCell(rightLabelStartCol + '2');
+      c2F.value = 'Statement of Accounts';
+      c2F.font  = { bold: true, size: 18, name: 'Calibri', color: { argb: TEXT_DARK } };
+      c2F.alignment = { horizontal: 'right', vertical: 'bottom' };
+
+      ws.getRow(3).height = 15;
+      var c3B = ws.getCell('B3');
+      c3B.value = company.address || '';
+      c3B.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
+      c3B.alignment = AL;
+
+      ws.mergeCells(rightLabelStartCol + '3:' + lastDataCol + '3');
+      var c3F = ws.getCell(rightLabelStartCol + '3');
+      var todayStr = new Date();
+      var dateStr = 'As of ' + ('0' + todayStr.getDate()).slice(-2) + '/' + ('0' + (todayStr.getMonth()+1)).slice(-2) + '/' + todayStr.getFullYear();
+      c3F.value = dateStr;
+      c3F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
+      c3F.alignment = { horizontal: 'right', vertical: 'middle' };
+      c3F.border = { bottom: bd('medium', BORDER_CLR) };
+
+      ws.getRow(4).height = 15;
+      var c4B = ws.getCell('B4');
+      c4B.value = company.telp ? 'Telp: ' + company.telp : '';
+      c4B.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_GRAY } };
+      c4B.alignment = AL;
+
+      ws.getRow(5).height = 15;
+      ws.mergeCells(rightLabelStartCol + '5:' + lastDataCol + '5');
+      var c5F = ws.getCell(rightLabelStartCol + '5');
+      c5F.value = 'Kepada :';
+      c5F.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
+      c5F.alignment = AL;
+
+      ws.getRow(6).height = 15;
+      ws.mergeCells(rightLabelStartCol + '6:' + lastDataCol + '6');
+      var c6F = ws.getCell(rightLabelStartCol + '6');
+      c6F.value = cust.name;
+      c6F.font  = { bold: true, size: 11, name: 'Calibri', color: { argb: TEXT_DARK } };
+      c6F.alignment = AL;
+
+      if (cust.id && cust.id !== '-') {
+        ws.getRow(7).height = 15;
+        ws.mergeCells(rightLabelStartCol + '7:' + lastDataCol + '7');
+        var c7F = ws.getCell(rightLabelStartCol + '7');
+        c7F.value = 'ID Customer: ' + cust.id;
+        c7F.font  = { size: 9, name: 'Calibri', color: { argb: TEXT_DARK } };
+        c7F.alignment = AL;
+      }
+
+      ws.getRow(8).height = 10;
+
+      ws.getRow(9).height = 28;
+      activeDefs.forEach(function(def) {
+        var cell = ws.getCell(def.colIdx + '9');
+        cell.value = def.label;
+        cell.font = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
+        cell.fill = fillSolid(TABLE_HEAD);
+        cell.alignment = def.align;
+        cell.border = borderTable();
+      });
+
+      var DATA_START = 10;
+      var totalNominal = 0;
+
+      rows.forEach(function(r, idx) {
+        var rowNum = DATA_START + idx;
+        ws.getRow(rowNum).height = 22;
+        var bg = idx % 2 === 0 ? WHITE : LIGHT_GRAY;
+
+        activeDefs.forEach(function(def) {
+          var val = def.render(r, idx);
+          var cell = ws.getCell(def.colIdx + rowNum);
+          if (def.isNum) {
+            if (val) { cell.value = val; cell.numFmt = '#,##0'; }
+            else { cell.value = '-'; }
+          } else {
+            cell.value = val;
+          }
+          cell.fill = fillSolid(bg);
+          cell.alignment = def.align;
+          cell.border = borderTable();
+          cell.font = { name: 'Calibri' };
+        });
+
+        totalNominal += r.nominal;
+      });
+
+      var lastDataRow = DATA_START + rows.length - 1;
+      var TOTAL_ROW   = lastDataRow + 2;
+
+      ws.getRow(lastDataRow + 1).height = 8;
+
+      ws.getRow(TOTAL_ROW).height = 22;
+      var labelTotal = statusFilter === 'CLOSE' ? 'TOTAL TAGIHAN CLOSE' : 'TOTAL TAGIHAN AKHIR';
+
+      var nominalDefIndex = activeDefs.findIndex(function(d) { return d.isNominal; });
+      if (nominalDefIndex !== -1) {
+        var nominalColLetter = alphabet[nominalDefIndex + 1];
+        
+        var mergeStartCol = alphabet[1];
+        var mergeEndCol = alphabet[nominalDefIndex];
+        if (nominalDefIndex > 0) {
+          ws.mergeCells(mergeStartCol + TOTAL_ROW + ':' + mergeEndCol + TOTAL_ROW);
+          var cellTotLabel = ws.getCell(mergeStartCol + TOTAL_ROW);
+          cellTotLabel.value = labelTotal;
+          cellTotLabel.font = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 11 };
+          cellTotLabel.fill = fillSolid(DARK_RED);
+          cellTotLabel.alignment = AC;
+        }
+
+        var cellTotVal = ws.getCell(nominalColLetter + TOTAL_ROW);
+        cellTotVal.value = totalNominal;
+        cellTotVal.font = { bold: true, color: { argb: WHITE }, name: 'Calibri', size: 12 };
+        cellTotVal.fill = fillSolid(DARK_RED);
+        cellTotVal.alignment = { horizontal: 'right', vertical: 'middle' };
+        cellTotVal.numFmt = '#,##0';
+
+        for (var i = nominalDefIndex + 1; i < activeDefs.length; i++) {
+          var emptyCell = ws.getCell(alphabet[i + 1] + TOTAL_ROW);
+          emptyCell.fill = fillSolid(DARK_RED);
+          emptyCell.border = borderTable();
+          emptyCell.alignment = AC;
+        }
+      }
+
+      var terbilangRow = TOTAL_ROW + 2;
+      ws.getRow(terbilangRow).height = 20;
+      ws.mergeCells('B' + terbilangRow + ':' + lastDataCol + terbilangRow);
+      var cellTerbilang = ws.getCell('B' + terbilangRow);
+      cellTerbilang.value     = 'Terbilang: ' + terbilang(totalNominal);
+      cellTerbilang.font      = { italic: true, size: 10, name: 'Calibri', color: { argb: TEXT_GRAY } };
+      cellTerbilang.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+
+      var hormatRow = terbilangRow + 4;
+      ws.getRow(hormatRow).height = 20;
+      ws.mergeCells(rightLabelStartCol + hormatRow + ':' + lastDataCol + hormatRow);
+      var cellHormat = ws.getCell(rightLabelStartCol + hormatRow);
+      cellHormat.value     = 'Hormat kami,';
+      cellHormat.font      = { size: 10, name: 'Calibri', color: { argb: TEXT_DARK } };
+      cellHormat.alignment = { horizontal: 'right', vertical: 'middle' };
+
+      var buffer = await wb.xlsx.writeBuffer();
+      var blob   = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      var safeFileName = cust.name.replace(/[^a-zA-Z0-9_\-. ]/g, '').replace(/\s+/g, '_');
+      saveAs(blob, 'SOA_' + safeFileName + '.xlsx');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  GENERATE PDF (jsPDF)
+    // ─────────────────────────────────────────────────────────────────
+    function generatePDF(company, cust, rows, statusFilter, exportCols) {
+      var cols = exportCols || { no: true, customerId: true, namaCustomer: true, noInvoice: true, tglInvoice: true, jatuhTempo: true, nominal: true, termin1: true, termin2: true, termin3: true, status: true, tglClose: true, umur: true };
+      var jsPDF_ = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+      var doc = new jsPDF_({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      var pageW = 297, margin = 15, contentW = pageW - margin * 2;
+      var startY = 15, leftY = startY;
+      if (company.logo) {
+        try {
+          var imgProps = doc.getImageProperties(company.logo);
+          var imgH = 12, imgW = (imgProps.width * imgH) / imgProps.height;
+          doc.addImage(company.logo, margin, leftY, imgW, imgH);
+          leftY += imgH + 4;
+        } catch (e) { }
+      }
+      var companyNameY = leftY;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 41, 59);
+      doc.text(company.name || 'Company Name', margin, leftY, { align: 'left' }); leftY += 5;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(100, 116, 139);
+      if (company.address) { doc.text(company.address, margin, leftY, { align: 'left' }); leftY += 4.5; }
+      if (company.telp) { doc.text('Telp: ' + company.telp, margin, leftY, { align: 'left' }); leftY += 4.5; }
+      var rightY = companyNameY;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(45, 45, 45);
+      doc.text('Statement of Accounts', pageW - margin, rightY, { align: 'right' }); rightY += 2;
+      var dateStr = 'As of ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(100, 116, 139);
+      doc.text(dateStr, pageW - margin, rightY + 4, { align: 'right' });
+      doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.5);
+      doc.line(pageW - margin - 80, rightY + 6, pageW - margin, rightY + 6); rightY += 12;
+      var y = Math.max(leftY, rightY) + 10;
+      var toBlockX = pageW - margin - 80;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 41, 59);
+      doc.text('Kepada :', toBlockX, y, { align: 'left' }); y += 5;
+      doc.setFontSize(11); doc.text(cust.name, toBlockX, y, { align: 'left' }); y += 5;
+      if (cust.id && cust.id !== '-') {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+        doc.text('ID Customer: ' + cust.id, toBlockX, y, { align: 'left' }); y += 5;
+      }
+      y += 4;
+      var colDefs = [
+        { key: 'no', label: 'No', width: 8, accessor: function (r, i) { return i + 1; } },
+        { key: 'customerId', label: 'Customer ID', width: 19, accessor: function (r) { return r.customerId; } },
+        { key: 'namaCustomer', label: 'Nama Customer', width: 32, accessor: function (r) { return r.namaCustomer; }, align: 'left' },
+        { key: 'noInvoice', label: 'No Invoice', width: 28, accessor: function (r) { return r.noInvoice; } },
+        { key: 'tglInvoice', label: 'Tgl Invoice', width: 18, accessor: function (r) { return r.tglInvoice; } },
+        { key: 'jatuhTempo', label: 'Tgl Jatuh Tempo', width: 18, accessor: function (r) { return r.jatuhTempo; } },
+        { key: 'nominal', label: 'Total Tagihan', width: 24, accessor: function (r) { return formatRp(r.nominal); } },
+        { key: 'termin1', label: 'Termin 1', width: 20, accessor: function (r) { return r.termin1 ? formatRp(r.termin1) : '-'; } },
+        { key: 'termin2', label: 'Termin 2', width: 20, accessor: function (r) { return r.termin2 ? formatRp(r.termin2) : '-'; } },
+        { key: 'termin3', label: 'Termin 3', width: 20, accessor: function (r) { return r.termin3 ? formatRp(r.termin3) : '-'; } },
+        { key: 'status', label: 'Status', width: 16, accessor: function (r) { return (r.status === 'LUNAS' || r.status === 'CLOSE') ? 'CLOSE' : 'OPEN'; } },
+        { key: 'tglClose', label: 'Tgl Close', width: 18, accessor: function (r) { return r.tglClose || '-'; } },
+        { key: 'umur', label: 'Jatuh Tempo', width: 16, accessor: function (r) { return r.umur; } },
+      ];
+      var activeCols = colDefs.filter(function (c) { return cols[c.key]; });
+      var headRow = activeCols.map(function (c) { return c.label; });
+      var tableData = rows.map(function (r, i) { return activeCols.map(function (c) { return c.accessor(r, i); }); });
+      var dynamicColStyles = {};
+      activeCols.forEach(function (c, i) { dynamicColStyles[i] = { halign: c.align || 'center' }; });
+      var hasNominal = cols.nominal, nominalIndex = activeCols.findIndex(function (c) { return c.key === 'nominal'; });
+      var footRow = [];
+      if (hasNominal) {
+        footRow = [
+          { content: 'TOTAL TAGIHAN AKHIR', colSpan: nominalIndex, styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } },
+          { content: formatRp(rows.reduce(function (s, r) { return s + r.nominal; }, 0)), styles: { halign: 'center', fillColor: [180, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        ];
+        if (nominalIndex < activeCols.length - 1) footRow.push({ content: '', colSpan: activeCols.length - 1 - nominalIndex, styles: { fillColor: [180, 0, 0] } });
+      }
+      doc.autoTable({
+        startY: y, head: [headRow], body: tableData, foot: hasNominal ? [footRow] : [],
+        margin: { left: margin, right: margin }, tableWidth: contentW,
+        columnStyles: dynamicColStyles,
+        headStyles: { fillColor: [45, 45, 45], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'center', cellPadding: { top: 5, bottom: 5, left: 2, right: 2 }, lineWidth: 0 },
+        bodyStyles: { fontSize: 9, textColor: [30, 41, 59], cellPadding: { top: 4, bottom: 4, left: 2, right: 2 }, lineWidth: 0 },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        didDrawPage: function (data) {
+          var pageCount = doc.internal.getNumberOfPages();
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+          doc.text('Page ' + data.pageNumber + ' of ' + pageCount, pageW - margin, 210 - 8, { align: 'right' });
+        }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+      var totalNominal = rows.reduce(function (s, r) { return s + r.nominal; }, 0);
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(100, 116, 139);
+      var terbilangText = 'Terbilang: ' + terbilang(totalNominal);
+      var lines = doc.splitTextToSize(terbilangText, contentW);
+      doc.text(lines, margin, y, { align: 'left' }); y += lines.length * 5 + 4;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30, 41, 59);
+      doc.text('Hormat kami,', pageW - margin - 30, y + 10, { align: 'center' });
+      var safeFileName = cust.name.replace(/[^a-zA-Z0-9_\-. ]/g, '').replace(/\s+/g, '_');
+      doc.save('SOA_' + safeFileName + '.pdf');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  GENERATE STOCK PDF
+    // ─────────────────────────────────────────────────────────────────
+    function generateStockPDF(productName, data, expandedPOs) {
+      expandedPOs = expandedPOs || {};
+      var jsPDF_ = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+      var doc = new jsPDF_({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      var pageW = doc.internal.pageSize.getWidth(), margin = 15, y = 20;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(100, 116, 139);
+      doc.text('Report Produk', margin, y); y += 6;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(30, 41, 59);
+      doc.text(productName, margin, y); y += 12;
+      var totalOrder = data.reduce(function (a, c) { return a + c.order; }, 0);
+      var totalTransit = data.reduce(function (a, c) { return a + c.transit; }, 0);
+      var totalDatang = data.reduce(function (a, c) { return a + c.datang; }, 0);
+      var totalSisa = data.reduce(function (a, c) { return a + c.sisa; }, 0);
+      var totalPO = data.length, statW = (pageW - margin * 2) / 4;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(100, 116, 139);
+      doc.text('Total order', margin, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 41, 59);
+      doc.text(formatNum(totalOrder), margin, y + 6);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+      doc.text('dari ' + totalPO + ' PO', margin, y + 10);
+      doc.setFontSize(9); doc.text('Total Transit', margin + statW, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(37, 99, 235);
+      doc.text(formatNum(totalTransit), margin + statW, y + 6);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+      doc.text('di MKR', margin + statW, y + 10);
+      doc.setFontSize(9); doc.text('Total Datang', margin + statW * 2, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(22, 163, 74);
+      doc.text(formatNum(totalDatang), margin + statW * 2, y + 6);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+      doc.text('sudah sampai', margin + statW * 2, y + 10);
+      doc.setFontSize(9); doc.text('Total Sisa', margin + statW * 3, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(220, 38, 38);
+      doc.text(formatNum(totalSisa), margin + statW * 3, y + 6);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+      doc.text('belum datang', margin + statW * 3, y + 10);
+      y += 20;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 41, 59);
+      doc.text('Riwayat per PO', margin, y); y += 6;
+      var tableRows = [];
+      data.forEach(function (po, idx) {
+        tableRows.push([
+          { content: '' + (idx + 1), styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'PO ' + po.noPo + ' | ' + po.vendor + ' (Status: ' + po.status + ')', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
+        ]);
+        tableRows.push([
+          '',
+          { content: 'Order ' + formatNum(po.order) + ' | Datang ' + formatNum(po.datang) + ' | Sisa ' + formatNum(po.sisa), colSpan: 6, styles: { fontStyle: 'bold', textColor: [15, 23, 42], fillColor: [248, 250, 252] } }
+        ]);
+        if (expandedPOs[po.id] && po.history && po.history.length > 0) {
+          po.history.forEach(function (h) {
+            tableRows.push(['', h.noGr || '-', h.tanggal, formatNum(h.transit), formatNum(h.datang), h.pic || '-', h.keterangan || '-']);
+          });
+        }
+      });
+      doc.autoTable({
+        startY: y,
+        head: [['No', 'No GR', 'Tanggal', 'Transit MKR', 'Datang', 'PIC', 'Keterangan']],
+        body: tableRows, theme: 'grid',
+        headStyles: { fillColor: [31, 56, 100], textColor: 255, fontStyle: 'bold', halign: 'center' },
+        columnStyles: { 0: { cellWidth: 12, halign: 'center' }, 1: { cellWidth: 25 }, 2: { cellWidth: 25 }, 3: { cellWidth: 22, halign: 'right' }, 4: { cellWidth: 20, halign: 'right' }, 5: { cellWidth: 25 }, 6: { cellWidth: 'auto' } },
+        styles: { fontSize: 9, cellPadding: 3 }
+      });
+      doc.save('Report_Produk_' + productName.replace(/\s+/g, '_') + '.pdf');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  GENERATE STOCK EXCEL (SheetJS)
+    // ─────────────────────────────────────────────────────────────────
+    function generateStockExcel(data) {
+      var wb = XLSX.utils.book_new();
+      var headers = ['No', 'Nama Barang', 'Vendor', 'No PO', 'No GR', 'Qty Order', 'Qty Transit MKR', 'Qty Datang', 'Sisa', 'Status', 'PIC', 'Keterangan'];
+      var wsData = [headers];
+      data.forEach(function (item, index) {
+        var statusStr = item.status === 'GR' || item.status === 'GOODS RECEIPT' ? 'GOODS RECEIPT' : item.status === 'Partial' ? 'PARTIAL' : 'BELUM DATANG';
+        wsData.push([
+          index + 1, item.namaBarang, item.vendor, item.noPo || '-', item.noGr || '-',
+          item.order, item.transit, item.datang, item.sisa, statusStr, item.pic || '-', item.keterangan
+        ]);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Stock_Card');
+      XLSX.writeFile(wb, 'Stock_Card_' + Date.now() + '.xlsx');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  TAGIHAN PAGE
+    // ─────────────────────────────────────────────────────────────────
+    var ALL_COLUMNS = [
+      { id: 'no', label: 'No' }, { id: 'customerId', label: 'Customer ID' }, { id: 'namaCustomer', label: 'Nama Customer' },
+      { id: 'noInvoice', label: 'No Invoice' }, { id: 'tglInvoice', label: 'Tgl Invoice' }, { id: 'jatuhTempo', label: 'Tgl Jatuh Tempo' },
+      { id: 'nominal', label: 'Total Tagihan' }, { id: 'termin1', label: 'Termin 1' }, { id: 'termin2', label: 'Termin 2' },
+      { id: 'termin3', label: 'Termin 3' }, { id: 'status', label: 'Status' }, { id: 'tglClose', label: 'Tgl Close' }, { id: 'umur', label: 'Jatuh Tempo (Umur)' }
+    ];
+
+    function getDisplayedTagihan() {
+      var dynamicRows = State.tagihanRows.map(function (r, i) {
+        var s = String(r.status || '').trim().toUpperCase();
+        var isOpen = s !== 'CLOSE' && s !== 'LUNAS';
+        return Object.assign({}, r, { _originalIndex: i, umur: isOpen ? String(hitungUmur(r.jatuhTempo)) : '0' });
+      });
+      var disp = dynamicRows;
+      var st = State.tagihan;
+      if (st.selCustomer) disp = disp.filter(function (r) { return String(r.customerId) === String(st.selCustomer); });
+      if (st.selStatus === 'OPEN') disp = disp.filter(function (r) { 
+        var s = String(r.status || '').trim().toUpperCase(); 
+        return s !== 'CLOSE' && s !== 'LUNAS'; 
+      });
+      if (st.selStatus === 'CLOSE') disp = disp.filter(function (r) { var s = String(r.status || '').trim().toUpperCase(); return s === 'CLOSE' || s === 'LUNAS'; });
+      if (st.selWaktu === 'OVERDUE') disp = disp.filter(function (r) { 
+        var s = String(r.status || '').trim().toUpperCase(); 
+        return s !== 'CLOSE' && s !== 'LUNAS' && Number(r.umur) <= 14; 
+      });
+      return disp;
+    }
+
+    function renderTagihanPage() {
+      var el = document.getElementById('page-tagihan');
+      var customers = getCustomers();
+      var displayed = getDisplayedTagihan();
+      var st = State.tagihan;
+      var totalPages = Math.max(1, Math.ceil(displayed.length / st.pageSize));
+      var safePage = Math.min(st.currentPage, totalPages) || 1;
+      var paginatedData = displayed.slice((safePage - 1) * st.pageSize, safePage * st.pageSize);
+
+      el.innerHTML =
+        // FILTER CARD
+        '<div class="card card-filter">' +
+        '<div class="card-filter-bg-graphic"><div class="cfg-blob-1"></div><div class="cfg-blob-2"></div><div class="cfg-dots"></div></div>' +
+        '<div class="card-header" style="position:relative;z-index:1">' +
+        '<h2 style="display:flex;align-items:center;gap:12px">' +
+        '<div style="background:#EFF6FF;color:#3B82F6;padding:8px;border-radius:8px;display:flex">' +
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>' +
+        '</div>Filter Data' +
+        '</h2>' +
+        '<button class="btn btn-sm" onclick="tagihanResetFilter()" style="margin-left:auto;background:#FEF2F2;border:1px solid #FECACA;color:#EF4444" title="Reset semua filter">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>Reset Filter' +
+        '</button>' +
+        '</div>' +
+        '<div class="card-body" style="position:relative;z-index:1">' +
+        (State.tagihanRows.length === 0 ?
+          '<div class="info-hint"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Tambahkan data tagihan terlebih dahulu (input manual atau import dari Excel).</div>' :
+          '<div class="generate-form">' +
+          '<div class="form-group">' +
+          '<label style="font-size:13px;font-weight:600">Customer <span style="font-weight:400;color:var(--text-sub);margin-left:6px">(' + customers.length + ' tersedia)</span></label>' +
+          '<div class="input-with-icon">' +
+          '<svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>' +
+          '<select class="form-control" id="sel-customer" onchange="State.tagihan.selCustomer=this.value;State.tagihan.currentPage=1;renderTagihanPage()">' +
+          '<option value="">-- Pilih Customer --</option>' +
+          customers.map(function (c) { return '<option value="' + escHtml(c.id) + '"' + (st.selCustomer === c.id ? ' selected' : '') + '>' + escHtml(c.name) + ' — ID: ' + escHtml(c.id) + '</option>'; }).join('') +
+          '</select>' +
+          '</div>' +
+          '</div>' +
+          '<div class="form-group">' +
+          '<label style="font-size:13px;font-weight:600">Filter Status</label>' +
+          '<div class="input-with-icon">' +
+          '<svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>' +
+          '<select class="form-control" onchange="State.tagihan.selStatus=this.value;State.tagihan.currentPage=1;renderTagihanPage()">' +
+          '<option value="ALL"' + (st.selStatus === 'ALL' ? ' selected' : '') + '>Semua (Open &amp; Close)</option>' +
+          '<option value="OPEN"' + (st.selStatus === 'OPEN' ? ' selected' : '') + '>Open</option>' +
+          '<option value="CLOSE"' + (st.selStatus === 'CLOSE' ? ' selected' : '') + '>Close</option>' +
+          '</select>' +
+          '</div>' +
+          '</div>' +
+          '<div class="form-group">' +
+          '<label style="font-size:13px;font-weight:600">Kondisi Jatuh Tempo</label>' +
+          '<div class="input-with-icon">' +
+          '<svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>' +
+          '<select class="form-control" onchange="State.tagihan.selWaktu=this.value;State.tagihan.currentPage=1;renderTagihanPage()">' +
+          '<option value="ALL"' + (st.selWaktu === 'ALL' ? ' selected' : '') + '>Semua Tagihan</option>' +
+          '<option value="OVERDUE"' + (st.selWaktu === 'OVERDUE' ? ' selected' : '') + '>Khusus Jatuh Tempo (≤ 14 Hari)</option>' +
+          '</select>' +
+          '</div>' +
+          '</div>' +
+          '<div class="generate-btn-group">' +
+          '<button class="btn btn-secondary" onclick="tagihanShowExportModal()" style="background:#fff;border:1px solid var(--border);color:var(--text)">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Opsi Kolom Ekspor' +
+          '</button>' +
+          '<button class="btn btn-excel" onclick="tagihanGenExcel()" id="btn-gen-excel" ' + (displayed.length === 0 ? 'disabled' : '') + '>' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>Excel' +
+          '</button>' +
+          '<button class="btn btn-pdf" onclick="tagihanGenPDF()" id="btn-gen-pdf" ' + (displayed.length === 0 ? 'disabled' : '') + '>' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15l2-2 2 2"></path></svg>PDF' +
+          '</button>' +
+          '</div>' +
+          '</div>'
+        ) +
+        '</div>' +
+        '</div>' +
+        // DATA TABLE CARD
+        '<div class="card">' +
+        '<div class="card-header">' +
+        '<h2 style="display:flex;align-items:center;gap:12px">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)" stroke="currentColor" stroke-width="2" style="color:#fff"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>Data Tagihan' +
+        '</h2>' +
+        '<div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        (State.tagihanRows.length > 0 ?
+          '<button class="btn btn-sm" style="background:#fff;color:#EF4444;border:1px solid #FECACA" onclick="tagihanConfirmClear()">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>Hapus Semua' +
+          '</button>' : '') +
+        '<button class="btn btn-sm" style="background:#fff;color:#64748B;border:1px solid #CBD5E1" onclick="document.getElementById(\'file-import\').click()">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Import Excel' +
+        '</button>' +
+        '<input id="file-import" type="file" accept=".xlsx,.xls" style="display:none" onchange="tagihanHandleImport(this)">' +
+        '<button class="btn btn-primary btn-sm" style="background:#4F46E5" onclick="tagihanOpenAdd()">' +
+        '<span style="margin-right:4px">+</span> Tambah Data' +
+        '</button>' +
+        '</div>' +
+        '</div>' +
+        (State.tagihanRows.length === 0 ?
+          '<div class="empty-full"><p>Belum ada data tagihan.</p></div>' :
+          '<div class="table-wrapper"><table class="data-table">' +
+          '<thead><tr>' +
+          '<th style="width:40px">No</th><th>Customer ID</th><th>Nama Customer</th>' +
+          '<th>No Invoice</th><th>Tgl Invoice</th><th>Tgl Jatuh Tempo</th>' +
+          '<th style="width:100px;text-align:right">Total Tagihan</th>' +
+          '<th style="width:80px;text-align:right">Termin 1</th><th style="width:80px;text-align:right">Termin 2</th><th style="width:80px;text-align:right">Termin 3</th>' +
+          '<th style="width:80px;text-align:center">Status</th><th>Tgl Close</th><th style="width:80px">Jatuh Tempo</th>' +
+          '<th style="width:80px">Aksi</th>' +
+          '</tr></thead><tbody>' +
+          paginatedData.map(function (r) {
+            var isDanger = r.status === 'OPEN' && Number(r.umur) <= 14;
+            return '<tr>' +
+              '<td class="center-cell">' + r.no + '</td>' +
+              '<td>' + escHtml(r.customerId) + '</td>' +
+              '<td style="font-weight:500">' + escHtml(r.namaCustomer) + '</td>' +
+              '<td>' + escHtml(r.noInvoice) + '</td>' +
+              '<td class="center-cell">' + escHtml(r.tglInvoice) + '</td>' +
+              '<td class="center-cell">' + escHtml(r.jatuhTempo) + '</td>' +
+              '<td class="nominal-cell">' + formatRp(r.nominal) + '</td>' +
+              '<td class="nominal-cell">' + (r.termin1 ? formatRp(r.termin1) : '-') + '</td>' +
+              '<td class="nominal-cell">' + (r.termin2 ? formatRp(r.termin2) : '-') + '</td>' +
+              '<td class="nominal-cell">' + (r.termin3 ? formatRp(r.termin3) : '-') + '</td>' +
+              '<td><span class="' + (r.status === 'LUNAS' || r.status === 'CLOSE' ? 'status-lunas' : 'status-open') + '">' + (r.status === 'LUNAS' || r.status === 'CLOSE' ? 'Close' : 'Open') + '</span></td>' +
+              '<td class="center-cell">' + (r.tglClose || '—') + '</td>' +
+              '<td class="center-cell" style="' + (isDanger ? 'color:var(--dark-red);font-weight:700' : '') + '">' + (r.umur === '-' || r.umur === 'NaN' || isNaN(r.umur) ? '-' : r.umur + ' Hari') + '</td>' +
+              '<td><div style="display:flex;gap:6px">' +
+              '<button class="btn btn-sm" style="padding:6px 8px;background:#EFF6FF;border:1px solid #BFDBFE;color:#3B82F6" onclick="tagihanOpenEdit(' + r._originalIndex + ')" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>' +
+              '<button class="btn btn-sm" style="padding:6px 8px;background:#FEF2F2;border:1px solid #FECACA;color:#EF4444" onclick="tagihanDelete(' + r._originalIndex + ')" title="Hapus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>' +
+              '</div></td>' +
+              '</tr>';
+          }).join('') +
+          '</tbody></table></div>'
+        ) +
+        (State.tagihanRows.length > 0 ?
+          '<div class="table-footer">' +
+          '<div class="table-footer-text">Menampilkan ' + (displayed.length > 0 ? (safePage - 1) * st.pageSize + 1 : 0) + ' - ' + Math.min(safePage * st.pageSize, displayed.length) + ' dari ' + displayed.length + ' data</div>' +
+          '<div class="pagination-controls">' +
+          '<select onchange="State.tagihan.pageSize=Number(this.value);State.tagihan.currentPage=1;renderTagihanPage()">' +
+          [5, 10, 25].map(function (n) { return '<option value="' + n + '"' + (st.pageSize === n ? ' selected' : '') + '>' + n + ' / halaman</option>'; }).join('') +
+          '</select>' +
+          '<button class="page-btn" onclick="State.tagihan.currentPage=Math.max(1,State.tagihan.currentPage-1);renderTagihanPage()" ' + (safePage === 1 ? 'disabled' : '') + '>' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>' +
+          '</button>' +
+          (function () {
+            var pages = '', arr = [];
+            for (var i = 1; i <= totalPages; i++) if (i === 1 || i === totalPages || Math.abs(i - safePage) <= 1) arr.push(i);
+            arr.forEach(function (p, i) {
+              if (i > 0 && arr[i - 1] !== p - 1) pages += '<span style="color:var(--text-sub)">...</span>';
+              pages += '<button class="page-btn' + (safePage === p ? ' active' : '') + '" onclick="State.tagihan.currentPage=' + p + ';renderTagihanPage()">' + p + '</button>';
+            });
+            return pages;
+          })() +
+          '<button class="page-btn" onclick="State.tagihan.currentPage=Math.min(' + totalPages + ',State.tagihan.currentPage+1);renderTagihanPage()" ' + (safePage === totalPages ? 'disabled' : '') + '>' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>' +
+          '</button>' +
+          '</div>' +
+          '</div>' : '') +
+        '</div>';
+    }
+
+    function tagihanResetFilter() {
+      State.tagihan.selCustomer = ''; State.tagihan.selStatus = 'ALL'; State.tagihan.selWaktu = 'ALL'; State.tagihan.currentPage = 1;
+      renderTagihanPage();
+    }
+
+    function tagihanHandleImport(input) {
+      var file = input.files[0]; if (!file) return;
+      input.value = '';
+      parseExcelFile(file, function (err, rows) {
+        if (err) { showToast('Gagal baca file: ' + err.message, 'error'); return; }
+        if (!rows.length) { showToast('Tidak ada data ditemukan.', 'error'); return; }
+        var existing = new Set(State.tagihanRows.map(function (r) { return r.noInvoice; }));
+        var newRows = rows.filter(function (r) { return !existing.has(r.noInvoice); });
+        var skip = rows.length - newRows.length;
+        if (!newRows.length) { showToast('Semua ' + rows.length + ' data sudah ada.', 'info'); return; }
+        var merged = State.tagihanRows.concat(newRows).map(function (r, i) { return Object.assign({}, r, { no: i + 1 }); });
+        State.tagihanRows = merged;
+        persistTagihan();
+        var uniq = new Set(newRows.map(function (r) { return r.customerId; })).size;
+        showToast(skip > 0 ? newRows.length + ' data ditambahkan (' + uniq + ' customer). ' + skip + ' dilewati.' : newRows.length + ' data berhasil diimport (' + uniq + ' customer).', 'success');
+        renderTagihanPage();
+      });
+    }
+
+    // Tagihan Form State
+    var _tagihanForm = {};
+    var _tagihanEditIdx = null;
+
+    function emptyTagihanForm() {
+      return { customerId: '', namaCustomer: '', noInvoice: '', tglInvoice: '', jatuhTempo: '', nominal: '', status: 'OPEN', tglClose: '', umur: '0', termin1: '', termin2: '', termin3: '', baseNominal: '' };
+    }
+
+    function tagihanOpenAdd() {
+      _tagihanForm = emptyTagihanForm();
+      _tagihanEditIdx = null;
+      tagihanShowForm();
+    }
+
+    function tagihanOpenEdit(idx) {
+      var r = State.tagihanRows[idx];
+      _tagihanForm = {
+        customerId: r.customerId, namaCustomer: r.namaCustomer, noInvoice: r.noInvoice,
+        tglInvoice: displayDateToHtml(r.tglInvoice), jatuhTempo: displayDateToHtml(r.jatuhTempo),
+        nominal: String(r.nominal), status: r.status, tglClose: displayDateToHtml(r.tglClose),
+        umur: String(r.umur), termin1: String(r.termin1 || ''), termin2: String(r.termin2 || ''), termin3: String(r.termin3 || ''),
+        baseNominal: String(r.baseNominal || r.nominal)
+      };
+      _tagihanEditIdx = idx;
+      tagihanShowForm();
+    }
+
+    function tagihanShowForm() {
+      var f = _tagihanForm;
+      var customers = getCustomers();
+      var isEdit = _tagihanEditIdx !== null;
+      var matchedCust = customers.find(function (c) { return c.id === f.customerId; });
+      var baseNomDisplay = f.baseNominal ? Number(f.baseNominal).toLocaleString('id-ID') : '';
+      var nom1Display = f.termin1 ? Number(f.termin1).toLocaleString('id-ID') : '';
+      var nom2Display = f.termin2 ? Number(f.termin2).toLocaleString('id-ID') : '';
+      var nom3Display = f.termin3 ? Number(f.termin3).toLocaleString('id-ID') : '';
+      var nomDisplay = f.nominal ? Number(f.nominal).toLocaleString('id-ID') : '';
+      var bodyHtml =
+        '<div class="form-grid-2">' +
+        '<div class="form-group">' +
+        '<label>Customer ID <span class="req">*</span></label>' +
+        (isEdit ?
+          '<input class="form-control" id="tf-cust-id" value="' + escHtml(f.customerId) + '" disabled style="background:#F1F5F9;cursor:not-allowed;color:#64748B">' :
+          (customers.length > 0 ?
+            '<select class="form-control" id="tf-cust-sel" onchange="tagihanCustSelChange(this.value)">' +
+            '<option value="__new__"' + (matchedCust ? '' : ' selected') + '>— Ketik customer baru —</option>' +
+            '<optgroup label="Customer tersimpan">' +
+            customers.map(function (c) { return '<option value="' + escHtml(c.id) + '"' + (f.customerId === c.id ? ' selected' : '') + '>' + escHtml(c.id) + ' — ' + escHtml(c.name) + '</option>'; }).join('') +
+            '</optgroup>' +
+            '</select>' +
+            (!matchedCust ? '<input class="form-control" style="margin-top:6px" placeholder="Ketik Customer ID baru" id="tf-cust-id" value="' + escHtml(f.customerId) + '" oninput="tagihanCustIdInput(this.value)" autofocus>' : '') :
+            '<input class="form-control" placeholder="Contoh: 1000000" id="tf-cust-id" value="' + escHtml(f.customerId) + '" oninput="tagihanCustIdInput(this.value)" autofocus>'
+          )
+        ) +
+        '</div>' +
+        '<div class="form-group">' +
+        '<label>Nama Customer <span class="req">*</span></label>' +
+        (isEdit ?
+          '<input class="form-control" id="tf-cust-nama" value="' + escHtml(f.namaCustomer) + '" disabled style="background:#F1F5F9;cursor:not-allowed;color:#64748B"><span class="field-hint">✎ Edit master customer di menu Rekap Customer</span>' :
+          '<input class="form-control' + (matchedCust ? ' input-autofilled' : '') + '" placeholder="Terisi otomatis atau ketik baru" id="tf-cust-nama" value="' + escHtml(f.namaCustomer) + '" oninput="tagihanNamaInput(this.value)" ' + (matchedCust ? 'readonly style="background:#EFF6FF;color:var(--dark-blue);font-weight:600;cursor:default"' : '') + '/>' +
+          (matchedCust ? '<span class="field-hint">✓ Master customer (Edit via menu Rekap)</span>' : '')
+        ) +
+        '</div>' +
+        '</div>' +
+        '<div class="form-grid-3">' +
+        '<div class="form-group"><label>No Invoice <span class="req">*</span></label><input class="form-control" id="tf-no-invoice" placeholder="Contoh: PM60712190" value="' + escHtml(f.noInvoice) + '"></div>' +
+        '<div class="form-group"><label>Tgl Invoice <span class="req">*</span></label><input type="date" class="form-control" id="tf-tgl-invoice" value="' + escHtml(f.tglInvoice) + '"></div>' +
+        '<div class="form-group"><label>Jatuh Tempo <span class="req">*</span></label><input type="date" class="form-control" id="tf-jatuh-tempo" value="' + escHtml(f.jatuhTempo) + '" onchange="tagihanUpdateUmur()"></div>' +
+        '</div>' +
+        '<div class="form-grid-2">' +
+        '<div class="form-group"><label>Total Tagihan (Rp) <span class="req">*</span></label><input class="form-control" id="tf-base-nominal" placeholder="Contoh: 10.092.422" value="' + baseNomDisplay + '" oninput="tagihanBaseNominalChange(this.value)" inputmode="numeric"></div>' +
+        '<div class="form-group"><label>Status</label><select class="form-control" id="tf-status" onchange="tagihanStatusChange(this.value)"><option value="OPEN"' + (f.status === 'OPEN' ? ' selected' : '') + '>OPEN</option><option value="CLOSE"' + (f.status === 'CLOSE' ? ' selected' : '') + '>CLOSE</option></select></div>' +
+        '</div>' +
+        '<div style="padding:16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;margin-bottom:16px">' +
+        '<div class="form-grid-2" style="margin-bottom:16px">' +
+        '<div class="form-group"><label>Termin 1 (Rp)</label><input class="form-control" id="tf-t1" placeholder="Cth: 2.000.000" value="' + nom1Display + '" oninput="tagihanTerminChange(this.value,1)" inputmode="numeric"></div>' +
+        '<div class="form-group"><label>Termin 2 (Rp)</label><input class="form-control" id="tf-t2" placeholder="Cth: 1.500.000" value="' + nom2Display + '" oninput="tagihanTerminChange(this.value,2)" inputmode="numeric"></div>' +
+        '</div>' +
+        '<div class="form-grid-2">' +
+        '<div class="form-group"><label>Termin 3 (Rp)</label><input class="form-control" id="tf-t3" placeholder="Cth: 1.000.000" value="' + nom3Display + '" oninput="tagihanTerminChange(this.value,3)" inputmode="numeric"></div>' +
+        '<div class="form-group"><label>Sisa Tagihan Akhir (Rp) <span class="req">*</span></label><input class="form-control" id="tf-nominal" value="' + nomDisplay + '" oninput="tagihanNominalChange(this.value)" inputmode="numeric" style="font-weight:600;color:var(--dark-blue)"></div>' +
+        '</div>' +
+        '</div>' +
+        (f.status === 'CLOSE' ? '<div class="form-group"><label>Tgl Close</label><input type="date" class="form-control" id="tf-tgl-close" value="' + escHtml(f.tglClose) + '"></div>' : '') +
+        (f.status === 'OPEN' && f.jatuhTempo ? '<div class="umur-hint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>Jatuh Tempo otomatis: <strong>' + (f.umur === '-' || f.umur === 'NaN' || isNaN(f.umur) ? '-' : f.umur + ' hari') + '</strong> dari tgl jatuh tempo ke hari ini</div>' : '') +
+        (f.status === 'CLOSE' ? '<div class="umur-hint">Status CLOSE — Jatuh Tempo otomatis menjadi <strong>0 hari</strong></div>' : '');
+      openModal({
+        title: (isEdit ? 'Edit' : 'Tambah') + ' Data Tagihan' + (isEdit ? '' : ' Baru'),
+        bodyHtml: bodyHtml,
+        footerHtml: '<button class="btn btn-secondary" onclick="closeModal(\'modal-main\')">Batal</button><button class="btn btn-primary" onclick="tagihanSave()">Simpan</button>'
+      });
+    }
+
+    function tagihanCustSelChange(val) {
+      if (val === '__new__') { _tagihanForm.customerId = ''; _tagihanForm.namaCustomer = ''; }
+      else {
+        var c = getCustomers().find(function (x) { return x.id === val; });
+        if (c) { _tagihanForm.customerId = c.id; _tagihanForm.namaCustomer = c.name; }
+      }
+      tagihanShowForm();
+    }
+    function tagihanCustIdInput(val) {
+      _tagihanForm.customerId = val;
+      var c = getCustomers().find(function (x) { return x.id === val; });
+      if (c) _tagihanForm.namaCustomer = c.name;
+    }
+    function tagihanNamaInput(val) {
+      _tagihanForm.namaCustomer = val;
+      var c = getCustomers().find(function (x) { return x.name.toLowerCase() === val.toLowerCase(); });
+      if (c) _tagihanForm.customerId = c.id;
+    }
+    function tagihanUpdateUmur() {
+      var jt = htmlDateToDisplay(document.getElementById('tf-jatuh-tempo').value);
+      _tagihanForm.jatuhTempo = document.getElementById('tf-jatuh-tempo').value;
+      _tagihanForm.umur = String(hitungUmur(jt));
+      var hint = document.querySelector('.umur-hint');
+      if (hint && _tagihanForm.status === 'OPEN') hint.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>Jatuh Tempo otomatis: <strong>' + _tagihanForm.umur + ' hari</strong> dari tgl jatuh tempo ke hari ini';
+    }
+    function tagihanStatusChange(val) {
+      _tagihanForm.status = val;
+      _tagihanForm.umur = val === 'CLOSE' ? '0' : String(hitungUmur(htmlDateToDisplay(_tagihanForm.jatuhTempo)));
+      tagihanShowForm();
+    }
+    function _rawNum(str) { return str ? str.replace(/\./g, '').replace(',', '') : '0'; }
+    function tagihanBaseNominalChange(val) {
+      var raw = val.replace(/[^0-9]/g, '');
+      var bNom = Number(raw) || 0;
+      var t1 = Number(_tagihanForm.termin1) || 0, t2 = Number(_tagihanForm.termin2) || 0, t3 = Number(_tagihanForm.termin3) || 0;
+      _tagihanForm.baseNominal = raw;
+      _tagihanForm.nominal = String(Math.max(0, bNom - (t1 + t2 + t3)));
+      var nomEl = document.getElementById('tf-nominal');
+      if (nomEl) nomEl.value = Number(_tagihanForm.nominal).toLocaleString('id-ID');
+    }
+    function tagihanTerminChange(val, n) {
+      var raw = val.replace(/[^0-9]/g, '');
+      _tagihanForm['termin' + n] = raw;
+      var bNom = Number(_tagihanForm.baseNominal) || 0;
+      var t1 = Number(_tagihanForm.termin1) || 0, t2 = Number(_tagihanForm.termin2) || 0, t3 = Number(_tagihanForm.termin3) || 0;
+      _tagihanForm.nominal = String(Math.max(0, bNom - (t1 + t2 + t3)));
+      var nomEl = document.getElementById('tf-nominal');
+      if (nomEl) nomEl.value = Number(_tagihanForm.nominal).toLocaleString('id-ID');
+    }
+    function tagihanNominalChange(val) { _tagihanForm.nominal = val.replace(/[^0-9]/g, ''); }
+
+    function tagihanSave() {
+      var f = _tagihanForm;
+      var custId = (document.getElementById('tf-cust-id') || document.getElementById('tf-cust-sel') || {}).value || f.customerId;
+      if (document.getElementById('tf-cust-sel')) custId = document.getElementById('tf-cust-sel').value === '__new__' ? (document.getElementById('tf-cust-id') || { value: f.customerId }).value : document.getElementById('tf-cust-sel').value;
+      var custNama = (document.getElementById('tf-cust-nama') || { value: f.namaCustomer }).value;
+      var noInvoice = (document.getElementById('tf-no-invoice') || { value: f.noInvoice }).value;
+      var tglInvoice = (document.getElementById('tf-tgl-invoice') || { value: f.tglInvoice }).value;
+      var jatuhTempo = (document.getElementById('tf-jatuh-tempo') || { value: f.jatuhTempo }).value;
+      var nominal = _tagihanForm.nominal || '0';
+      var baseNominal = _tagihanForm.baseNominal || '0';
+      var status = (document.getElementById('tf-status') || { value: f.status }).value;
+      var tglClose = (document.getElementById('tf-tgl-close') || { value: f.tglClose }).value;
+      if (!custId.trim()) { showToast('Customer ID wajib diisi.', 'error'); return; }
+      if (!custNama.trim()) { showToast('Nama Customer wajib diisi.', 'error'); return; }
+      if (!noInvoice.trim()) { showToast('No Invoice wajib diisi.', 'error'); return; }
+      if (!tglInvoice) { showToast('Tgl Invoice wajib diisi.', 'error'); return; }
+      if (!jatuhTempo) { showToast('Jatuh Tempo wajib diisi.', 'error'); return; }
+      if (!baseNominal || baseNominal === '0') { showToast('Total Tagihan wajib diisi.', 'error'); return; }
+      var row = {
+        customerId: custId.trim(), namaCustomer: custNama.trim(), noInvoice: noInvoice.trim(),
+        tglInvoice: htmlDateToDisplay(tglInvoice), jatuhTempo: htmlDateToDisplay(jatuhTempo),
+        nominal: parseNominalInput(nominal), status: status,
+        tglClose: status === 'CLOSE' ? htmlDateToDisplay(tglClose) : '',
+        umur: status === 'CLOSE' ? 0 : hitungUmur(htmlDateToDisplay(jatuhTempo)),
+        termin1: Number(_tagihanForm.termin1) || 0, termin2: Number(_tagihanForm.termin2) || 0, termin3: Number(_tagihanForm.termin3) || 0,
+        baseNominal: Number(_tagihanForm.baseNominal) || parseNominalInput(nominal)
+      };
+      if (_tagihanEditIdx !== null) {
+        State.tagihanRows[_tagihanEditIdx] = Object.assign({}, State.tagihanRows[_tagihanEditIdx], row);
+        showToast('Data diupdate!', 'success');
+      } else {
+        row.no = State.tagihanRows.length + 1;
+        State.tagihanRows.push(row);
+        showToast('Data disimpan!', 'success');
+      }
+      persistTagihan();
+      closeModal('modal-main');
+      renderTagihanPage();
+    }
+
+    function tagihanDelete(idx) {
+      if (!confirm('Hapus data ini?')) return;
+      State.tagihanRows.splice(idx, 1);
+      State.tagihanRows = State.tagihanRows.map(function (r, i) { return Object.assign({}, r, { no: i + 1 }); });
+      persistTagihan();
+      showToast('Data dihapus.', 'info');
+      renderTagihanPage();
+    }
+
+    function tagihanConfirmClear() {
+      if (!confirm('Hapus SEMUA ' + State.tagihanRows.length + ' baris data tagihan? Tindakan ini tidak bisa dibatalkan.')) return;
+      State.tagihanRows = [];
+      persistTagihan();
+      State.tagihan.selCustomer = '';
+      showToast('Semua data tagihan dihapus.', 'info');
+      renderTagihanPage();
+    }
+
+    function tagihanShowExportModal() {
+      var cols = State.tagihan.exportColumns;
+      openModal({
+        title: 'Pilih Kolom Ekspor',
+        bodyHtml: '<p style="margin-bottom:16px;color:var(--text-sub)">Pilih kolom mana saja yang ingin Anda tampilkan pada dokumen hasil ekspor (PDF & Excel):</p>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+          ALL_COLUMNS.map(function (col) {
+            return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">' +
+              '<input type="checkbox" id="excol-' + col.id + '"' + (cols[col.id] ? ' checked' : '') + '>' + escHtml(col.label) + '</label>';
+          }).join('') +
+          '</div>',
+        footerHtml: '<button class="btn btn-primary" onclick="tagihanSaveExportCols()">Selesai</button>'
+      });
+    }
+    function tagihanSaveExportCols() {
+      ALL_COLUMNS.forEach(function (col) {
+        var el = document.getElementById('excol-' + col.id);
+        if (el) State.tagihan.exportColumns[col.id] = el.checked;
+      });
+      closeModal('modal-main');
+    }
+
+    function _getTagihanPayload() {
+      var displayed = getDisplayedTagihan();
+      if (!displayed.length) { showToast('Tidak ada tagihan yang sesuai filter.', 'error'); return null; }
+      var st = State.tagihan;
+      var custId = st.selCustomer;
+      var cust = custId ? { id: custId, name: (getCustomers().find(function (c) { return c.id === custId; }) || { name: custId }).name } : { id: '-', name: 'Semua Customer' };
+      return { cust: cust, rows: displayed.map(function (r) { return Object.assign({}, r, { umur: r.status === 'OPEN' ? hitungUmur(r.jatuhTempo) : 0 }); }) };
+    }
+    function tagihanGenExcel() {
+      var p = _getTagihanPayload(); if (!p) return;
+      try { generateSOA(State.company, p.cust, p.rows, State.tagihan.selStatus, State.tagihan.exportColumns); showToast('Excel berhasil diunduh!', 'success'); }
+      catch (e) { showToast('Gagal: ' + e.message, 'error'); }
+    }
+    function tagihanGenPDF() {
+      var p = _getTagihanPayload(); if (!p) return;
+      try { generatePDF(State.company, p.cust, p.rows, State.tagihan.selStatus, State.tagihan.exportColumns); showToast('PDF berhasil diunduh!', 'success'); }
+      catch (e) { showToast('Gagal: ' + e.message, 'error'); }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  REKAP PAGE
+    // ─────────────────────────────────────────────────────────────────
+    function renderRekapPage() {
+      var el = document.getElementById('page-rekap');
+      var customers = getCustomers();
+      var summary = customers.map(function (c) {
+        var rows = State.tagihanRows.filter(function (r) { return String(r.customerId) === String(c.id); });
+        var open = rows.filter(function (r) { 
+          var s = String(r.status || '').trim().toUpperCase();
+          return s !== 'CLOSE' && s !== 'LUNAS'; 
+        });
+        var close = rows.filter(function (r) { var s = String(r.status || '').trim().toUpperCase(); return s === 'CLOSE' || s === 'LUNAS'; });
+        return Object.assign({}, c, {
+          totalInvoice: rows.length,
+          totalOpen: open.reduce(function (s, r) {
+            var val = Math.max(Number(r.nominal) || 0, (Number(r.termin1) || 0) + (Number(r.termin2) || 0) + (Number(r.termin3) || 0));
+            return s + val;
+          }, 0), countOpen: open.length,
+          totalClose: close.reduce(function (s, r) {
+            var val = Math.max(Number(r.nominal) || 0, (Number(r.termin1) || 0) + (Number(r.termin2) || 0) + (Number(r.termin3) || 0));
+            return s + val;
+          }, 0), countClose: close.length
+        });
+      });
+      el.innerHTML =
+        '<div class="card">' +
+        '<div class="card-header">' +
+        '<h2>Daftar Customer</h2>' +
+        (customers.length > 0 ? '<span class="badge">' + customers.length + ' customer</span>' : '') +
+        '<span class="subtitle" style="flex:1 1 100%">Customer terdeteksi otomatis dari file Excel yang diupload.' +
+        (customers.length === 0 ? ' Upload file terlebih dahulu di tab "Data & Generate".' : '') +
+        '</span>' +
+        '</div>' +
+        (customers.length === 0 ?
+          '<div style="padding:40px 24px;text-align:center;color:var(--text-sub)">' +
+          '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5" style="margin-bottom:12px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+          '<p style="font-size:14px">Belum ada data customer.</p>' +
+          '<p style="font-size:13px;margin-top:4px">Upload file Excel di tab <strong>Data &amp; Generate</strong> untuk melihat daftar customer.</p>' +
+          '</div>' :
+          '<div class="table-wrapper"><table class="data-table">' +
+          '<thead><tr><th>No</th><th>Customer ID</th><th>Nama Customer</th><th style="text-align:center">Total Invoice</th><th style="text-align:center">Invoice Open</th><th style="text-align:right">Total Open (Rp)</th><th style="text-align:center">Invoice Close</th><th style="text-align:right">Total Close (Rp)</th><th style="text-align:center">Aksi</th></tr></thead>' +
+          '<tbody>' + summary.map(function (c, i) {
+            return '<tr>' +
+              '<td class="center-cell">' + (i + 1) + '</td>' +
+              '<td>' + escHtml(c.id) + '</td>' +
+              '<td style="font-weight:600">' + escHtml(c.name) + '</td>' +
+              '<td class="center-cell">' + c.totalInvoice + '</td>' +
+              '<td class="center-cell">' + (c.countOpen > 0 ? '<span class="status-open">' + c.countOpen + '</span>' : '<span style="color:var(--text-sub)">0</span>') + '</td>' +
+              '<td class="nominal-cell">' + (c.totalOpen > 0 ? '<span style="color:var(--dark-red);font-weight:600">' + formatRp(c.totalOpen) + '</span>' : '<span style="color:var(--text-sub)">—</span>') + '</td>' +
+              '<td class="center-cell">' + (c.countClose > 0 ? '<span class="status-lunas">' + c.countClose + '</span>' : '<span style="color:var(--text-sub)">0</span>') + '</td>' +
+              '<td class="nominal-cell">' + (c.totalClose > 0 ? '<span style="color:var(--success);font-weight:600">' + formatRp(c.totalClose) + '</span>' : '<span style="color:var(--text-sub)">—</span>') + '</td>' +
+              '<td class="center-cell"><button class="btn btn-icon" style="color:var(--accent)" onclick="customerShowEditForm(\'' + escHtml(c.id) + '\')" title="Edit Master Customer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>' +
+              '</tr>';
+          }).join('') + '</tbody>' +
+          '<tfoot><tr style="background:#F8FAFC;font-weight:700">' +
+          '<td colspan="5" style="padding:10px 12px;text-align:right;color:var(--dark-blue)">TOTAL KESELURUHAN</td>' +
+          '<td class="nominal-cell" style="color:var(--dark-red);padding:10px 12px">' + formatRp(summary.reduce(function (s, c) { return s + c.totalOpen; }, 0)) + '</td>' +
+          '<td></td>' +
+          '<td class="nominal-cell" style="color:var(--success);padding:10px 12px">' + formatRp(summary.reduce(function (s, c) { return s + c.totalClose; }, 0)) + '</td>' +
+          '</tr></tfoot>' +
+          '</table></div>'
+        ) +
+        '</div>';
+    }
+
+    var _editCustomerState = { oldId: '', oldName: '' };
+    function customerShowEditForm(id) {
+      var cust = getCustomers().find(function (c) { return c.id === id; });
+      if (!cust) return;
+      _editCustomerState = { oldId: cust.id, oldName: cust.name };
+
+      openModal({
+        title: 'Edit Master Customer',
+        bodyHtml:
+          '<div class="form-group" style="margin-bottom:12px">' +
+          '<label>Customer ID</label>' +
+          '<input type="text" class="form-control" id="m-cust-id" value="' + escHtml(cust.id) + '" autofocus>' +
+          '</div>' +
+          '<div class="form-group" style="margin-bottom:12px">' +
+          '<label>Nama Customer</label>' +
+          '<input type="text" class="form-control" id="m-cust-name" value="' + escHtml(cust.name) + '">' +
+          '</div>' +
+          '<p style="font-size:13px;color:var(--text-sub);background:#EFF6FF;padding:12px;border-radius:8px;margin-top:16px;">' +
+          '<strong>Perhatian:</strong> Perubahan pada ID atau Nama ini akan secara otomatis diterapkan pada <strong>semua</strong> tagihan yang memiliki Customer ID ini.' +
+          '</p>',
+        footerHtml: '<button class="btn btn-secondary" onclick="closeModal(\'modal-main\')">Batal</button><button class="btn btn-primary" onclick="customerSaveEdit()">Simpan Perubahan</button>'
+      });
+    }
+
+    function customerSaveEdit() {
+      var newId = (document.getElementById('m-cust-id').value || '').trim();
+      var newName = (document.getElementById('m-cust-name').value || '').trim();
+      if (!newId || !newName) return showToast('ID dan Nama tidak boleh kosong', 'error');
+
+      var oldId = _editCustomerState.oldId;
+      var oldName = _editCustomerState.oldName;
+      if (oldId === newId && oldName === newName) return closeModal('modal-main');
+
+      // Optimistic UI update
+      var countChanged = 0;
+      State.tagihanRows.forEach(function (r) {
+        if (String(r.customerId) === String(oldId)) {
+          r.customerId = newId;
+          r.namaCustomer = newName;
+          countChanged++;
+        }
+      });
+
+      closeModal('modal-main');
+      renderRekapCustomer(); // update table
+      showToast('Menyimpan perubahan untuk ' + countChanged + ' tagihan...', 'success');
+
+      // Kirim ke server
+      runServer('updateCustomerMaster', [oldId, newId, newName], function (success) {
+        if (success) {
+          showToast('Master Customer berhasil diperbarui', 'success');
+        } else {
+          showToast('Gagal memperbarui di server, muat ulang halaman...', 'error');
+          setTimeout(function () { location.reload(); }, 2000);
+        }
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  STOCK PAGE
+    // ─────────────────────────────────────────────────────────────────
+    var _stockExpandedPOs = {};
+
+    function getFilteredStock() {
+      var st = State.stock;
+      return State.stockData.filter(function (item) {
+        var matchSearch = !st.searchTerm || (item.namaBarang || '').toLowerCase().includes(st.searchTerm.toLowerCase()) || (item.vendor || '').toLowerCase().includes(st.searchTerm.toLowerCase()) || (item.noPo || '').toLowerCase().includes(st.searchTerm.toLowerCase());
+        var matchVendor = st.selectedVendor === 'Semua vendor' || item.vendor === st.selectedVendor;
+        var matchStatus = st.statusFilter === 'Semua' || item.status === st.statusFilter;
+        return matchSearch && matchVendor && matchStatus;
+      });
+    }
+
+    function renderStockPage() {
+      var el = document.getElementById('page-stock');
+      if (State.stock.selectedProductName) {
+        renderStockDetail(el); return;
+      }
+      var st = State.stock;
+      var vendors = ['Semua vendor'].concat([...new Set(State.stockData.map(function (i) { return i.vendor; }))]);
+      var filteredData = getFilteredStock();
+      el.innerHTML =
+        '<div class="card card-filter">' +
+        '<div class="card-filter-bg-graphic"><div class="cfg-blob-1"></div><div class="cfg-blob-2"></div><div class="cfg-dots"></div></div>' +
+        '<div class="card-header" style="position:relative;z-index:1">' +
+        '<h2 style="display:flex;align-items:center;gap:12px">' +
+        '<div style="background:#EFF6FF;color:#3B82F6;padding:8px;border-radius:8px;display:flex">' +
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>' +
+        '</div>Filter Stok Data' +
+        '</h2>' +
+        '</div>' +
+        '<div class="card-body" style="position:relative;z-index:1">' +
+        '<div class="generate-form">' +
+        '<div class="form-group">' +
+        '<label style="font-size:13px;font-weight:600">Pencarian</label>' +
+        '<div class="input-with-icon">' +
+        '<svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>' +
+        '<input type="text" class="form-control" placeholder="Cari nama barang, vendor, atau PO" value="' + escHtml(st.searchTerm) + '" oninput="State.stock.searchTerm=this.value;renderStockPage()">' +
+        '</div>' +
+        '</div>' +
+        '<div class="form-group">' +
+        '<label style="font-size:13px;font-weight:600">Vendor</label>' +
+        '<div class="input-with-icon">' +
+        '<svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>' +
+        '<select class="form-control" onchange="State.stock.selectedVendor=this.value;renderStockPage()">' +
+        vendors.map(function (v) { return '<option value="' + escHtml(v) + '"' + (st.selectedVendor === v ? ' selected' : '') + '>' + escHtml(v) + '</option>'; }).join('') +
+        '</select>' +
+        '</div>' +
+        '</div>' +
+        '<div class="form-group">' +
+        '<label style="font-size:13px;font-weight:600">Filter Status</label>' +
+        '<div class="input-with-icon">' +
+        '<svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>' +
+        '<select class="form-control" onchange="State.stock.statusFilter=this.value;renderStockPage()">' +
+        '<option value="Semua"' + (st.statusFilter === 'Semua' ? ' selected' : '') + '>Semua Status</option>' +
+        '<option value="GR"' + (st.statusFilter === 'GR' ? ' selected' : '') + '>Goods Receipt (GR)</option>' +
+        '<option value="Partial"' + (st.statusFilter === 'Partial' ? ' selected' : '') + '>Partial</option>' +
+        '<option value="Belum datang"' + (st.statusFilter === 'Belum datang' ? ' selected' : '') + '>Belum datang</option>' +
+        '</select>' +
+        '</div>' +
+        '</div>' +
+        '<div class="generate-btn-group">' +
+        '<button class="btn btn-secondary" onclick="State.stock.searchTerm=\'\';State.stock.selectedVendor=\'Semua vendor\';State.stock.statusFilter=\'Semua\';renderStockPage()">Reset Filter</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="card">' +
+        '<div class="card-header">' +
+        '<h2 style="display:flex;align-items:center;gap:12px">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)" stroke="currentColor" stroke-width="2" style="color:#fff"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>' +
+        'Data Stok Barang' +
+        '</h2>' +
+        '<div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<button class="btn btn-excel btn-sm" onclick="generateStockExcel(getFilteredStock())">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>Export Excel' +
+        '</button>' +
+        '<button class="btn btn-primary btn-sm" style="background:#4F46E5" onclick="stockOpenAdd()"><span style="margin-right:4px">+</span> Tambah Data</button>' +
+        '</div>' +
+        '</div>' +
+        '<div class="stock-table-wrapper"><table class="stock-table">' +
+        '<thead><tr><th>Nama Barang</th><th>Vendor</th><th>No PO</th><th>No GR</th><th>Order</th><th>Transit</th><th>Datang</th><th>Sisa</th><th>Status</th><th>PIC</th><th>Keterangan</th><th style="width:80px">Aksi</th></tr></thead>' +
+        '<tbody>' +
+        (filteredData.length === 0 ? '<tr><td colspan="12" style="text-align:center;padding:32px 0;color:var(--text-sub)">Tidak ada data ditemukan</td></tr>' :
+          filteredData.map(function (row) {
+            var statusClass = row.status === 'GR' ? 'status-gr' : row.status === 'Partial' ? 'status-partial' : 'status-belum-datang';
+            return '<tr>' +
+              '<td><button class="link-btn font-semibold" onclick="stockShowDetail(\'' + escHtml(row.namaBarang) + '\')">' + escHtml(row.namaBarang) + '</button></td>' +
+              '<td>' + escHtml(row.vendor) + '</td>' +
+              '<td class="font-medium">' + escHtml(row.noPo) + '</td>' +
+              '<td class="text-muted">' + escHtml(row.noGr || '-') + '</td>' +
+              '<td>' + formatNum(row.order) + '</td>' +
+              '<td class="center-cell" style="color:#3B82F6;font-weight:600">' + formatNum(row.transit) + '</td>' +
+              '<td class="center-cell" style="color:#10B981;font-weight:600">' + formatNum(row.datang) + '</td>' +
+              '<td class="center-cell" style="color:#EF4444;font-weight:700">' + formatNum(row.sisa) + '</td>' +
+              '<td class="center-cell"><span class="status-badge ' + statusClass + '">' + escHtml(row.status) + '</span></td>' +
+              '<td class="center-cell" style="color:var(--text-sub)">' + escHtml(row.pic || '—') + '</td>' +
+              '<td style="color:var(--text-sub)">' + escHtml(row.keterangan || '') + '</td>' +
+              '<td><div style="display:flex;gap:6px;justify-content:center">' +
+              '<button class="btn btn-sm" style="padding:6px;background:#EFF6FF;border:1px solid #BFDBFE;color:#3B82F6" onclick="stockOpenEdit(' + row.id + ')" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>' +
+              '<button class="btn btn-sm" style="padding:6px;background:#FEF2F2;border:1px solid #FECACA;color:#EF4444" onclick="stockDelete(' + row.id + ')" title="Hapus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>' +
+              '</div></td>' +
+              '</tr>';
+          }).join('')
+        ) +
+        '</tbody></table></div>' +
+        '<div class="table-footer">' +
+        '<div class="table-footer-text">Menampilkan 1 - ' + filteredData.length + ' dari ' + State.stockData.length + ' data</div>' +
+        '<div class="pagination-controls"><select style="width:auto"><option>Semua / halaman</option></select><button class="page-btn active">1</button></div>' +
+        '</div>' +
+        '</div>';
+    }
+
+    function stockShowDetail(productName) {
+      State.stock.selectedProductName = productName;
+      _stockExpandedPOs = {};
+      renderStockPage();
+    }
+
+    function renderStockDetail(el) {
+      var productName = State.stock.selectedProductName;
+      var data = State.stockData.filter(function (d) { return d.namaBarang === productName; });
+      var totalOrder = data.reduce(function (a, c) { return a + c.order; }, 0);
+      var totalTransit = data.reduce(function (a, c) { return a + c.transit; }, 0);
+      var totalDatang = data.reduce(function (a, c) { return a + c.datang; }, 0);
+      var totalSisa = data.reduce(function (a, c) { return a + c.sisa; }, 0);
+      el.innerHTML =
+        '<div class="detail-view-container">' +
+        '<div class="detail-header-row">' +
+        '<div>' +
+        '<button class="back-btn text-muted" onclick="State.stock.selectedProductName=null;renderStockPage()">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>Kembali' +
+        '</button>' +
+        '<div class="text-sm text-muted uppercase mt-2 font-semibold">Report Produk</div>' +
+        '<h2 class="detail-title">' + escHtml(productName) + '</h2>' +
+        '</div>' +
+        '<button class="export-btn" onclick="generateStockPDF(\'' + escHtml(productName) + '\',State.stockData.filter(function(d){return d.namaBarang===\'' + escHtml(productName) + '\';}).map(function(d){return d;}),_stockExpandedPOs)">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Export PDF' +
+        '</button>' +
+        '</div>' +
+        '<div class="stats-grid">' +
+        '<div class="stat-card"><div class="stat-label">Total Order</div><div class="stat-value">' + formatNum(totalOrder) + '</div><div class="stat-desc">dari ' + data.length + ' PO</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Total Transit</div><div class="stat-value text-blue">' + formatNum(totalTransit) + '</div><div class="stat-desc text-muted">di MKR</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Total Datang</div><div class="stat-value text-green">' + formatNum(totalDatang) + '</div><div class="stat-desc text-muted">sudah sampai</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Total Sisa</div><div class="stat-value text-red">' + formatNum(totalSisa) + '</div><div class="stat-desc text-muted">belum datang</div></div>' +
+        '</div>' +
+        '<h3 class="history-title">Riwayat per PO</h3>' +
+        '<div class="po-history-list" id="po-history-list">' +
+        data.map(function (po) {
+          var isExp = !!_stockExpandedPOs[po.id];
+          var statusClass = po.status === 'GR' ? 'status-gr' : po.status === 'Partial' ? 'status-partial' : 'status-belum-datang';
+          return '<div class="po-card">' +
+            '<div class="po-card-header" onclick="stockTogglePO(' + po.id + ')">' +
+            '<div class="flex-align-center gap-2"><h4 class="po-card-title">PO ' + escHtml(po.noPo) + ' <span style="font-weight:400;margin:0 4px">|</span> ' + escHtml(po.vendor) + '</h4></div>' +
+            '<div style="display:flex;align-items:center;gap:8px"><span class="status-badge ' + statusClass + '">' + (po.status === 'GR' ? 'Goods Receipt' : escHtml(po.status)) + '</span></div>' +
+            '</div>' +
+            '<div class="po-card-body" style="display:' + (isExp ? 'block' : 'none') + '">' +
+            '<table class="history-table"><thead><tr><th>No GR</th><th>Tanggal</th><th>Transit MKR</th><th>Datang</th><th>PIC</th><th>Keterangan</th></tr></thead>' +
+            '<tbody>' +
+            (po.history || []).map(function (h) {
+              return '<tr><td class="font-medium text-dark">' + escHtml(h.noGr) + '</td><td>' + escHtml(h.tanggal) + '</td><td class="text-blue">' + formatNum(h.transit) + '</td><td class="text-green">' + formatNum(h.datang) + '</td><td>' + escHtml(h.pic) + '</td><td class="text-muted">' + escHtml(h.keterangan) + '</td></tr>';
+            }).join('') +
+            '</tbody></table>' +
+            '<div class="po-card-footer text-sm"><span class="font-medium">Order ' + formatNum(po.order) + '</span> <span style="margin:0 6px;color:#CBD5E1">|</span> <span class="font-medium">Datang ' + formatNum(po.datang) + '</span> <span style="margin:0 6px;color:#CBD5E1">|</span> <span class="font-medium">Sisa ' + formatNum(po.sisa) + '</span></div>' +
+            '</div>' +
+            '</div>';
+        }).join('') +
+        '</div>' +
+        '</div>';
+    }
+
+    function stockTogglePO(id) {
+      _stockExpandedPOs[id] = !_stockExpandedPOs[id];
+      if (State.stock.selectedProductName) renderStockPage();
+    }
+
+    // Stock Form
+    var _stockForm = {};
+    var _stockEditId = null;
+
+    function emptyStockForm() {
+      return { tanggal: new Date().toISOString().split('T')[0], namaBarang: '', vendor: '', noPo: '', order: '', transit: '', datang: '', status: 'Belum datang', noGr: '', pic: '', keterangan: '' };
+    }
+
+    function stockOpenAdd() {
+      _stockForm = emptyStockForm(); _stockEditId = null; stockShowForm();
+    }
+    function stockOpenEdit(id) {
+      var item = State.stockData.find(function (i) { return i.id === id; });
+      if (!item) return;
+      _stockForm = {
+        tanggal: new Date().toISOString().split('T')[0],
+        namaBarang: item.namaBarang, vendor: item.vendor, noPo: item.noPo,
+        order: item.order, transit: item.transit, datang: item.datang,
+        status: item.status, noGr: item.noGr || '', pic: item.pic || '', keterangan: item.keterangan || ''
+      };
+      _stockEditId = id; stockShowForm();
+    }
+    function stockShowForm() {
+      var f = _stockForm;
+      var sisa = (Number(f.order) || 0) - (Number(f.datang) || 0);
+      openModal({
+        title: (_stockEditId ? 'Edit' : 'Tambah') + ' Data Stok Baru',
+        bodyHtml:
+          '<div class="form-grid-2">' +
+          '<div class="form-group"><label>Tanggal <span class="req">*</span></label><input required type="date" class="form-control" id="sf-tanggal" value="' + escHtml(f.tanggal) + '"></div>' +
+          '<div class="form-group"><label>Nama Barang <span class="req">*</span></label><input required type="text" class="form-control" id="sf-nama" placeholder="Contoh: Kertas Label Thermal" value="' + escHtml(f.namaBarang) + '"></div>' +
+          '</div>' +
+          '<div class="form-grid-2">' +
+          '<div class="form-group"><label>Vendor <span class="req">*</span></label><input required type="text" class="form-control" id="sf-vendor" placeholder="Contoh: PT abcdefg" value="' + escHtml(f.vendor) + '"></div>' +
+          '<div class="form-group"><label>No PO <span class="req">*</span></label><input required type="text" class="form-control" id="sf-nopo" placeholder="Contoh: 4500001613" value="' + escHtml(f.noPo) + '"></div>' +
+          '</div>' +
+          '<div style="padding:16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;margin-bottom:16px">' +
+          '<div class="form-grid-2" style="margin-bottom:16px">' +
+          '<div class="form-group"><label>Order (Qty) <span class="req">*</span></label><input required type="number" class="form-control" id="sf-order" placeholder="0" value="' + escHtml(String(f.order)) + '" oninput="stockUpdateSisa()"></div>' +
+          '<div class="form-group"><label>Transit (Qty)</label><input type="number" class="form-control" id="sf-transit" placeholder="0" value="' + escHtml(String(f.transit)) + '"></div>' +
+          '</div>' +
+          '<div class="form-grid-2">' +
+          '<div class="form-group"><label>Datang (Qty)</label><input type="number" class="form-control" id="sf-datang" placeholder="0" value="' + escHtml(String(f.datang)) + '" oninput="stockUpdateSisa()"></div>' +
+          '<div class="form-group"><label>Sisa (Qty)</label><input type="number" class="form-control" id="sf-sisa" disabled value="' + sisa + '" style="font-weight:600;color:var(--dark-red);background:#FEF2F2"></div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="form-grid-2">' +
+          '<div class="form-group"><label>Status <span class="req">*</span></label><select class="form-control" id="sf-status"><option value="Belum datang"' + (f.status === 'Belum datang' ? ' selected' : '') + '>Belum datang</option><option value="Partial"' + (f.status === 'Partial' ? ' selected' : '') + '>Partial</option><option value="GR"' + (f.status === 'GR' ? ' selected' : '') + '>GR</option></select></div>' +
+          '<div class="form-group"><label>No GR</label><input type="text" class="form-control" id="sf-nogr" placeholder="Contoh: 50001234" value="' + escHtml(f.noGr) + '"></div>' +
+          '</div>' +
+          '<div class="form-grid-2">' +
+          '<div class="form-group"><label>PIC</label><input type="text" class="form-control" id="sf-pic" placeholder="Nama PIC" value="' + escHtml(f.pic) + '"></div>' +
+          '<div class="form-group"><label>Keterangan</label><input type="text" class="form-control" id="sf-ket" placeholder="Contoh: sudah tiba manado" value="' + escHtml(f.keterangan) + '"></div>' +
+          '</div>',
+        footerHtml: '<button class="btn btn-secondary" onclick="closeModal(\'modal-main\')">Batal</button><button class="btn btn-primary" onclick="stockSave()">Simpan</button>'
+      });
+    }
+    function stockUpdateSisa() {
+      var order = Number((document.getElementById('sf-order') || { value: '0' }).value) || 0;
+      var datang = Number((document.getElementById('sf-datang') || { value: '0' }).value) || 0;
+      var sisaEl = document.getElementById('sf-sisa');
+      if (sisaEl) sisaEl.value = Math.max(0, order - datang);
+    }
+    function stockSave() {
+      var nama = (document.getElementById('sf-nama') || { value: '' }).value;
+      var vendor = (document.getElementById('sf-vendor') || { value: '' }).value;
+      var noPo = (document.getElementById('sf-nopo') || { value: '' }).value;
+      var order = Number((document.getElementById('sf-order') || { value: '0' }).value) || 0;
+      var transit = Number((document.getElementById('sf-transit') || { value: '0' }).value) || 0;
+      var datang = Number((document.getElementById('sf-datang') || { value: '0' }).value) || 0;
+      var status = (document.getElementById('sf-status') || { value: 'Belum datang' }).value;
+      var noGr = (document.getElementById('sf-nogr') || { value: '' }).value;
+      var pic = (document.getElementById('sf-pic') || { value: '' }).value;
+      var keterangan = (document.getElementById('sf-ket') || { value: '' }).value;
+      var tanggal = (document.getElementById('sf-tanggal') || { value: '' }).value;
+      if (!nama.trim()) { showToast('Nama Barang wajib diisi.', 'error'); return; }
+      if (!vendor.trim()) { showToast('Vendor wajib diisi.', 'error'); return; }
+      var sisa = Math.max(0, order - datang);
+      if (_stockEditId) {
+        var idx = State.stockData.findIndex(function (i) { return i.id === _stockEditId; });
+        if (idx !== -1) {
+          State.stockData[idx] = Object.assign({}, State.stockData[idx], { namaBarang: nama, vendor: vendor, noPo: noPo, order: order, transit: transit, datang: datang, sisa: sisa, status: status, noGr: noGr, pic: pic, keterangan: keterangan });
+          showToast('Data stok diupdate!', 'success');
+        }
+      } else {
+        var tanggalStr = htmlDateToDisplay(tanggal);
+        State.stockData.push({
+          id: Date.now(), namaBarang: nama, vendor: vendor, noPo: noPo, order: order, transit: transit, datang: datang, sisa: sisa,
+          status: status, noGr: noGr, pic: pic, keterangan: keterangan,
+          history: [{ noGr: noGr || '-', tanggal: tanggalStr, transit: transit, datang: datang, pic: pic || '-', keterangan: keterangan }]
+        });
+        showToast('Data stok ditambahkan!', 'success');
+      }
+      persistStock();
+      closeModal('modal-main');
+      renderStockPage();
+    }
+    function stockDelete(id) {
+      if (!confirm('Hapus data stok ini?')) return;
+      State.stockData = State.stockData.filter(function (i) { return i.id !== id; });
+      persistStock();
+      showToast('Data stok dihapus.', 'info');
+      renderStockPage();
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  SETTINGS PAGE
+    // ─────────────────────────────────────────────────────────────────
+    function renderSettingsPage() {
+      var el = document.getElementById('page-settings');
+      var c = State.company;
+      el.innerHTML =
+        '<div style="max-width:1024px;margin:0 auto;padding-bottom:40px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding:16px 20px;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);border:1px solid var(--border)">' +
+        '<div>' +
+        '<h2 style="margin:0;font-size:18px;color:var(--dark-blue)">Pengaturan Sistem</h2>' +
+        '<span class="subtitle" style="font-size:13px;margin-top:4px;display:block">Kelola profil perusahaan untuk kop surat di PDF &amp; Excel.</span>' +
+        '</div>' +
+        '<button class="btn btn-primary" onclick="settingsSave()" style="display:flex;align-items:center;gap:8px;padding:10px 20px">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>' +
+        'Simpan Semua' +
+        '</button>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">' +
+        '<div class="card" style="box-shadow:0 1px 3px rgba(0,0,0,.04);margin:0">' +
+        '<div class="card-header" style="padding-bottom:16px;border-bottom:1px solid var(--border)">' +
+        '<h3 style="margin:0;font-size:16px;color:var(--dark-blue);display:flex;align-items:center;gap:8px">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>' +
+        'Informasi Perusahaan (Kop Surat)' +
+        '</h3>' +
+        '</div>' +
+        '<div class="card-body" style="display:flex;flex-direction:column;gap:20px">' +
+        '<div style="display:flex;flex-direction:column;gap:16px">' +
+        '<div class="form-group" style="margin-bottom:0"><label style="font-size:13px">Nama Perusahaan</label><input class="form-control" id="set-name" placeholder="PT XYZ" value="' + escHtml(c.name || '') + '"></div>' +
+        '<div class="form-group" style="margin-bottom:0"><label style="font-size:13px">Alamat</label><input class="form-control" id="set-address" placeholder="Jl. Merdeka No. X8, Medan" value="' + escHtml(c.address || '') + '"></div>' +
+        '<div class="form-group" style="margin-bottom:0"><label style="font-size:13px">Nomor Telepon</label><input class="form-control" id="set-telp" placeholder="061 654 3210" value="' + escHtml(c.telp || '') + '"></div>' +
+        '</div>' +
+        '<div class="form-group" style="margin-bottom:0">' +
+        '<label style="font-size:13px">Logo Perusahaan (Opsional)</label>' +
+        '<div id="logo-drop-area" style="border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;background:#F8FAFC;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:120px;cursor:pointer" onclick="document.getElementById(\'set-logo-input\').click()">' +
+        (c.logo ?
+          '<img src="' + c.logo + '" alt="Logo" style="max-height:60px;object-fit:contain"><button class="btn btn-sm" style="background:#FEE2E2;color:var(--dark-red)" onclick="event.stopPropagation();settingsRemoveLogo()">Hapus Logo</button>' :
+          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>' +
+          '<span style="font-size:13px;color:#64748B">Pilih gambar logo untuk kop surat</span>'
+        ) +
+        '<input id="set-logo-input" type="file" accept="image/*" style="display:none" onchange="settingsLogoChange(this)">' +
+        '</div>' +
+        '</div>' +
+        '<div>' +
+        '<label style="font-size:13px;display:block;margin-bottom:8px">Preview Header di PDF &amp; Excel</label>' +
+        '<div style="padding:16px;background:#F8FAFC;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-sub)">' +
+        '<div style="text-align:center;margin-bottom:8px">' +
+        (c.logo ? '<img src="' + c.logo + '" alt="Logo" style="max-height:50px;object-fit:contain;margin-bottom:8px"><br>' : '') +
+        '<div style="font-weight:700;font-size:16px;color:var(--dark-blue)">STATEMENT OF ACCOUNT</div>' +
+        '</div>' +
+        '<div style="text-align:center">' + escHtml(c.name || 'PT XYZ') + '  |  ' + escHtml(c.address || 'Alamat') + '  |  Telp ' + escHtml(c.telp || '-') + '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+    }
+    function settingsSave() {
+      var name = (document.getElementById('set-name') || { value: '' }).value;
+      if (!name.trim()) { showToast('Nama perusahaan tidak boleh kosong.', 'error'); return; }
+      State.company.name = name.trim();
+      State.company.address = (document.getElementById('set-address') || { value: '' }).value.trim();
+      State.company.telp = (document.getElementById('set-telp') || { value: '' }).value.trim();
+      persistSettings();
+      showToast('Pengaturan berhasil disimpan!', 'success');
+      renderSettingsPage();
+    }
+    function settingsRemoveLogo() { State.company.logo = ''; renderSettingsPage(); }
+    function settingsLogoChange(input) {
+      var file = input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onloadend = function () { State.company.logo = reader.result; renderSettingsPage(); };
+      reader.readAsDataURL(file);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  INIT
+    // ─────────────────────────────────────────────────────────────────
+    function initApp() {
+      // Header date
+      var dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      document.getElementById('header-date').textContent = dateStr;
+
+      // Sidebar toggle
+      document.getElementById('menu-toggle').addEventListener('click', function () {
+        State.sidebarOpen = !State.sidebarOpen;
+        document.querySelector('.app-layout').classList.toggle('sidebar-closed', !State.sidebarOpen);
+      });
+
+      // Load data from server
+      var loaded = 0;
+      function checkLoaded() {
+        loaded++;
+        if (loaded >= 2) {
+          // Tidak ada data contoh (dummy) lagi. Jika kosong, biarkan kosong.
+          renderSidebar();
+          setTab('tagihan');
+          document.getElementById('loading-screen').style.display = 'none';
+          document.getElementById('app').style.display = '';
+        }
+      }
+
+      runServer('getTagihanRows', [], function (rows) {
+        if (rows) {
+          rows.forEach(function(r) {
+            if (r.status) r.status = String(r.status).trim().toUpperCase();
+          });
+        }
+        State.tagihanRows = rows || [];
+        checkLoaded();
+      });
+      runServer('getSettings', [], function (settings) {
+        if (settings) State.company = settings;
+        checkLoaded();
+      });
+      runServer('initSheets', [], function () { }, function () { });
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+
+</html>

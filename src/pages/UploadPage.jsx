@@ -112,8 +112,9 @@ export default function UploadPage() {
 
   // Summary customer yang dipilih
   const previewRows  = selCustomer ? tagihanRows.filter(r => r.customerId === selCustomer) : [];
-  const previewOpen  = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
-  const previewClose = previewRows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS').reduce((s, r) => s + r.nominal, 0);
+  const getFullValue = (r) => Math.max(Number(r.nominal) || 0, (Number(r.termin1) || 0) + (Number(r.termin2) || 0) + (Number(r.termin3) || 0));
+  const previewOpen  = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + getFullValue(r), 0);
+  const previewClose = previewRows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS').reduce((s, r) => s + getFullValue(r), 0);
 
   return (
     <>

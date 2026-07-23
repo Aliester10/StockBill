@@ -31,13 +31,22 @@ function parseNominalInput(str) {
   return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || 0;
 }
 function hitungUmur(jatuhTempoStr) {
-  if (!jatuhTempoStr) return 0;
+  if (!jatuhTempoStr || jatuhTempoStr === '-') return '-';
   try {
-    const [d, m, y] = jatuhTempoStr.split('/');
-    const tgl = new Date(Number(y), Number(m) - 1, Number(d));
+    let tgl;
+    if (jatuhTempoStr.includes('-')) {
+      const [y, m, d] = jatuhTempoStr.split('-');
+      tgl = new Date(Number(y), Number(m) - 1, Number(d));
+    } else if (jatuhTempoStr.includes('/')) {
+      const [d, m, y] = jatuhTempoStr.split('/');
+      tgl = new Date(Number(y), Number(m) - 1, Number(d));
+    } else {
+      return '-';
+    }
+    if (isNaN(tgl.getTime())) return '-';
     const today = new Date(); today.setHours(0, 0, 0, 0);
     return Math.floor((tgl - today) / 86400000);
-  } catch { return 0; }
+  } catch { return '-'; }
 }
 function htmlDateToDisplay(val) {
   if (!val) return '';
@@ -284,16 +293,16 @@ export default function TagihanPage() {
   if (selStatus === 'OPEN') displayed = displayed.filter(r => r.status === 'OPEN');
   if (selStatus === 'CLOSE') displayed = displayed.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS');
   if (selWaktu === 'OVERDUE') displayed = displayed.filter(r => r.status === 'OPEN' && Number(r.umur) <= 14);
-
   // Pagination logic
   const totalPages = Math.max(1, Math.ceil(displayed.length / pageSize));
   const safePage = Math.min(currentPage, totalPages) || 1;
   const paginatedData = displayed.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const totalSemua = displayed.reduce((s, r) => s + r.nominal, 0);
-  const totalOpen = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
+  const getFullValue = (r) => Math.max(Number(r.nominal) || 0, (Number(r.termin1) || 0) + (Number(r.termin2) || 0) + (Number(r.termin3) || 0));
+  const totalSemua = displayed.reduce((s, r) => s + getFullValue(r), 0);
+  const totalOpen = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + getFullValue(r), 0);
   const previewRows = displayed.filter(r => selCustomer && r.customerId === selCustomer);
-  const previewOpen = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
-  const previewClose = previewRows.filter(r => r.status === 'CLOSE').reduce((s, r) => s + r.nominal, 0);
+  const previewOpen = previewRows.filter(r => r.status === 'OPEN').reduce((s, r) => s + getFullValue(r), 0);
+  const previewClose = previewRows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS').reduce((s, r) => s + getFullValue(r), 0);
   const matchedCust = customers.find(c => c.id === form.customerId);
 
   // ── Render ───────────────────────────────────────────────────
@@ -504,7 +513,9 @@ export default function TagihanPage() {
                         )}
                       </td>
                       <td className="center-cell">{r.tglClose || '—'}</td>
-                      <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>{r.umur} Hari</td>
+                      <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>
+                        {r.umur === '-' || r.umur === 'NaN' || isNaN(r.umur) ? '-' : `${r.umur} Hari`}
+                      </td>
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button className="btn btn-sm btn-secondary" onClick={() => openEdit(idx)} title="Edit" style={{ padding: '6px 8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#3B82F6' }}>

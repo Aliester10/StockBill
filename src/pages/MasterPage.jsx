@@ -12,12 +12,18 @@ export default function MasterPage() {
     const rows  = tagihanRows.filter(r => r.customerId === c.id);
     const open  = rows.filter(r => r.status === 'OPEN');
     const close = rows.filter(r => r.status === 'CLOSE' || r.status === 'LUNAS');
+    
+    const getFullValue = (r) => {
+      const sumTermins = (Number(r.termin1) || 0) + (Number(r.termin2) || 0) + (Number(r.termin3) || 0);
+      return Math.max(Number(r.nominal) || 0, sumTermins);
+    };
+
     return {
       ...c,
       totalInvoice  : rows.length,
-      totalOpen     : open.reduce((s, r) => s + r.nominal, 0),
+      totalOpen     : open.reduce((s, r) => s + getFullValue(r), 0),
       countOpen     : open.length,
-      totalClose    : close.reduce((s, r) => s + r.nominal, 0),
+      totalClose    : close.reduce((s, r) => s + getFullValue(r), 0),
       countClose    : close.length,
     };
   });

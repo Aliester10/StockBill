@@ -34,13 +34,22 @@ function parseNominalInput(str) {
 
 // Hitung umur otomatis dari jatuh tempo ke hari ini
 function hitungUmur(jatuhTempoStr) {
-  if (!jatuhTempoStr) return 0;
+  if (!jatuhTempoStr || jatuhTempoStr === '-') return '-';
   try {
-    const [d, m, y] = jatuhTempoStr.split('/');
-    const tgl = new Date(Number(y), Number(m) - 1, Number(d));
+    let tgl;
+    if (jatuhTempoStr.includes('-')) {
+      const [y, m, d] = jatuhTempoStr.split('-');
+      tgl = new Date(Number(y), Number(m) - 1, Number(d));
+    } else if (jatuhTempoStr.includes('/')) {
+      const [d, m, y] = jatuhTempoStr.split('/');
+      tgl = new Date(Number(y), Number(m) - 1, Number(d));
+    } else {
+      return '-';
+    }
+    if (isNaN(tgl.getTime())) return '-';
     const today = new Date(); today.setHours(0, 0, 0, 0);
     return Math.floor((tgl - today) / 86400000);
-  } catch { return 0; }
+  } catch { return '-'; }
 }
 
 // Format Date input (yyyy-MM-dd) ke dd/MM/yyyy
@@ -259,8 +268,9 @@ export default function InputDataPage() {
     ? dynamicRows.filter(r => r.customerId === filterCust)
     : dynamicRows;
 
-  const totalSemua = displayed.reduce((s, r) => s + r.nominal, 0);
-  const totalOpen  = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + r.nominal, 0);
+  const getFullValue = (r) => Math.max(Number(r.nominal) || 0, (Number(r.termin1) || 0) + (Number(r.termin2) || 0) + (Number(r.termin3) || 0));
+  const totalSemua = displayed.reduce((s, r) => s + getFullValue(r), 0);
+  const totalOpen  = displayed.filter(r => r.status === 'OPEN').reduce((s, r) => s + getFullValue(r), 0);
 
   return (
     <>
@@ -390,7 +400,9 @@ export default function InputDataPage() {
                         </span>
                       </td>
                       <td className="center-cell">{r.tglClose || '—'}</td>
-                      <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>{r.umur}</td>
+                      <td className="center-cell" style={isDanger ? { color: 'var(--dark-red)', fontWeight: 700 } : {}}>
+                        {r.umur === '-' || r.umur === 'NaN' || isNaN(r.umur) ? '-' : r.umur}
+                      </td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
                           <button

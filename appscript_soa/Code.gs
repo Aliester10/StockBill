@@ -1,0 +1,151 @@
+// ════════════════════════════════════════════════════════════════
+//  Code.gs  ─  Backend entry point for SOA Generator Web App
+// ════════════════════════════════════════════════════════════════
+
+// ── Config ───────────────────────────────────────────────────────
+var SHEET_TAGIHAN  = 'Tagihan';
+var SHEET_SETTINGS = 'Settings';
+
+// ── doGet ─────────────────────────────────────────────────────────
+function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('SOA Generator')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+// ── FUNGSI WAJIB JALAN (SETUP) ──────────────────────────────────
+// JALANKAN FUNGSI INI SEKALI SAJA DARI EDITOR APPS SCRIPT
+function sambungkanKeSpreadsheetIni() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    throw new Error("Penting: Anda harus menjalankan ini dari dalam file Spreadsheet (Ekstensi > Apps Script).");
+  }
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('SPREADSHEET_ID', ss.getId());
+  initSheets_(ss);
+  console.log("SUKSES: Web App berhasil disambungkan permanen ke Spreadsheet ini!");
+}
+
+// ── Spreadsheet Helper ───────────────────────────────────────────
+function getOrCreateSpreadsheet_() {
+  var props = PropertiesService.getScriptProperties();
+  var ssId  = props.getProperty('SPREADSHEET_ID');
+  
+  if (ssId) {
+    try { 
+      return SpreadsheetApp.openById(ssId); 
+    } catch(e) {
+      throw new Error("Tidak dapat mengakses database Spreadsheet. Pastikan Web App di-deploy dengan 'Execute as: Me'.");
+    }
+  }
+  
+  // Fallback jika belum disambungkan (akan membuat sheet mandiri baru)
+  var ss = SpreadsheetApp.create('SOA Generator Data');
+  props.setProperty('SPREADSHEET_ID', ss.getId());
+  initSheets_(ss);
+  return ss;
+}
+
+function initSheets_(ss) {
+  ss = ss || getOrCreateSpreadsheet_();
+  var needed = [SHEET_TAGIHAN, SHEET_SETTINGS];
+  var existing = ss.getSheets().map(function(s){ return s.getName(); });
+  needed.forEach(function(name) {
+    if (existing.indexOf(name) === -1) {
+      ss.insertSheet(name);
+    }
+  });
+  // Hapus sheet default "Sheet1" jika ada dan belum terpakai
+  var def = ss.getSheetByName('Sheet1');
+  if (def && ss.getSheets().length > needed.length) {
+    ss.deleteSheet(def);
+  }
+}
+
+// Public: init sheets (called once from client on first load)
+function initSheets() {
+  initSheets_();
+}
+
+// ── TAGIHAN CRUD ─────────────────────────────────────────────────
+function getTagihanRows() {
+  var ss    = getOrCreateSpreadsheet_();
+  var sheet = ss.getSheetByName(SHEET_TAGIHAN);
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  // Row 0 = headers
+  var headers = data[0];
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = {};
+    headers.forEach(function(h, j) { 
+      var val = data[i][j];
+      // Jika val adalah objek Date, ubah ke string ISO agar aman dikirim ke client
+      if (val instanceof Date) {
+        // Karena zona waktu bisa bergeser, pastikan formatnya konsisten
+        var y = val.getFullYear();
+        var m = ('0' + (val.getMonth() + 1)).slice(-2);
+        var d = ('0' + val.getDate()).slice(-2);
+        val = y + '-' + m + '-' + d;
+      }
+      row[h] = val; 
+    });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function saveTagihanRows(rows) {
+  var ss    = getOrCreateSpreadsheet_();
+  var sheet = ss.getSheetByName(SHEET_TAGIHAN);
+  if (!sheet) { initSheets_(); sheet = ss.getSheetByName(SHEET_TAGIHAN); }
+  sheet.clearContents();
+  if (!rows || rows.length === 0) return;
+  var headers = ['no','customerId','namaCustomer','noInvoice','tglInvoice','jatuhTempo',
+                 'nominal','status','tglClose','umur','termin1','termin2','termin3','baseNominal'];
+  var values  = [headers];
+  rows.forEach(function(r) {
+    values.push(headers.map(function(h) { return r[h] !== undefined ? r[h] : ''; }));
+  });
+  sheet.getRange(1, 1, values.length, headers.length).setValues(values);
+}
+function updateCustomerMaster(oldId, newId, newName) {
+  var ss    = getOrCreateSpreadsheet_();
+  var sheet = ss.getSheetByName(SHEET_TAGIHAN);
+  if (!sheet) return false;
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return false;
+  
+  var headers = data[0];
+  var idIdx = headers.indexOf('customerId');
+  var nameIdx = headers.indexOf('namaCustomer');
+  if (idIdx === -1 || nameIdx === -1) return false;
+  
+  var updated = false;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][idIdx]) === String(oldId)) {
+      sheet.getRange(i+1, idIdx+1).setValue(newId);
+      sheet.getRange(i+1, nameIdx+1).setValue(newName);
+      updated = true;
+    }
+  }
+  return updated;
+}
+
+
+
+// ── SETTINGS ─────────────────────────────────────────────────────
+function getSettings() {
+  var props = PropertiesService.getScriptProperties();
+  var raw   = props.getProperty('COMPANY_SETTINGS');
+  if (raw) {
+    try { return JSON.parse(raw); } catch(e) {}
+  }
+  return { name: 'PT XYZ', address: 'Jl. Merdeka No. X8, Medan', telp: '061 654 3210', logo: '' };
+}
+
+function saveSettings(settings) {
+  PropertiesService.getScriptProperties().setProperty('COMPANY_SETTINGS', JSON.stringify(settings));
+}

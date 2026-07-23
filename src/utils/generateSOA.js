@@ -62,7 +62,7 @@ export async function generateSOA(company, cust, rows, statusFilter, exportColum
     { key: 'termin1', label: 'Termin 1', width: 13, align: AR, isNum: true, render: r => r.termin1 },
     { key: 'termin2', label: 'Termin 2', width: 13, align: AR, isNum: true, render: r => r.termin2 },
     { key: 'termin3', label: 'Termin 3', width: 13, align: AR, isNum: true, render: r => r.termin3 },
-    { key: 'status', label: 'Status', width: 12, align: AC, render: r => r.status === 'LUNAS' ? 'CLOSE' : r.status },
+    { key: 'status', label: 'Status', width: 12, align: AC, render: r => (r.status === 'LUNAS' || r.status === 'CLOSE') ? 'CLOSE' : 'OPEN' },
     { key: 'tglClose', label: 'Tgl Close', width: 13, align: AC, render: r => r.tglClose || '-' },
     { key: 'umur', label: 'Jatuh Tempo (hari)', width: 13, align: AC, render: r => r.umur },
   ];
